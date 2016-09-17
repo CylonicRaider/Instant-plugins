@@ -1,0 +1,6 @@
+# Ignore site-specific runner scripts.
+/*.bash
+# Ignore class files.
+/**.class
+# Ignore temporary build files
+/build/
