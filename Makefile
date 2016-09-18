@@ -21,7 +21,7 @@ out/%.jar: build/%.jar $(shell find src/$* -type f 2>/dev/null) | out
 	cd src/$* && jar ufm ../../out/$*.jar META-INF/MANIFEST.MF \
 	2>/dev/null || true
 	cd src/$* && jar uf ../../out/$*.jar $$(find . -type f -not \
-	-path './META-INF/*')
+	-path './META-INF/MANIFEST.MF')
 
 clean:
 	rm -rf build/ out/
