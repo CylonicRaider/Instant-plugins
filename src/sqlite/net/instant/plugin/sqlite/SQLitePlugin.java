@@ -16,11 +16,11 @@ public class SQLitePlugin {
     public static Connection connect(String dbName) throws SQLException {
         String conn;
         if (dbName == null) {
-            conn = ":memory:";
+            conn = "jdbc:sqlite::memory:";
         } else {
             conn = String.format(locationTemplate, dbName);
         }
-        return DriverManager.getConnection("jdbc:sqlite:" + conn);
+        return DriverManager.getConnection(conn);
     }
 
     public static Object initInstantPlugin1(API1 api, PluginData data) {
@@ -44,8 +44,10 @@ public class SQLitePlugin {
         String locationStr = baseLocation.toString();
         if (! locationStr.endsWith(File.separator))
             locationStr += File.separator;
-        locationTemplate = locationStr.replace("%", "%%") + "%s.db";
+        locationTemplate = "jdbc:sqlite:" +
+            locationStr.replace("%", "%%") + "%s.db";
         Map<String, Object> ret = new HashMap<String, Object>();
+        ret.put("location", locationStr);
         ret.put("template", locationTemplate);
         return ret;
     }
