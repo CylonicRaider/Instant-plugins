@@ -7,6 +7,7 @@ import net.instant.api.MessageContents;
 import net.instant.api.MessageHook;
 import net.instant.api.PresenceChange;
 import net.instant.api.RequestResponseData;
+import net.instant.api.Utilities;
 import org.json.JSONObject;
 
 public class MessageHandler implements MessageHook {
@@ -27,16 +28,13 @@ public class MessageHandler implements MessageHook {
         UUID uuid;
         String content;
         MessageContents reply;
-        JSONObject replyData;
         switch (msgd.getType()) {
             case "get-cdata":
                 uuid = getUUID(message.getSource());
                 content = manager.getData(uuid);
                 reply = message.makeReply("cdata");
-                replyData = new JSONObject();
-                replyData.put("uuid", uuid);
-                replyData.put("data", content);
-                reply.setData(replyData);
+                reply.setData(Utilities.createJSONObject("uuid", uuid,
+                                                         "data", content));
                 break;
             case "set-cdata":
                 uuid = getUUID(message.getSource());
@@ -45,25 +43,18 @@ public class MessageHandler implements MessageHook {
                         ((JSONObject) msgd.getData()).optString("data");
                     if (manager.setData(uuid, content)) {
                         reply = message.makeReply("cdata");
-                        replyData = new JSONObject();
-                        replyData.put("uuid", uuid);
-                        replyData.put("data", content);
-                        reply.setData(replyData);
+                        reply.setData(Utilities.createJSONObject("uuid", uuid,
+                            "data", content));
                     } else {
                         reply = message.makeReply("error");
-                        replyData = new JSONObject();
-                        replyData.put("message",
-                                      "Failed to set client data");
-                        reply.setData(replyData);
+                        reply.setData(Utilities.createJSONObject("message",
+                            "Failed to set client data"));
                     }
                 } else {
                     reply = message.makeReply("error");
-                    replyData = new JSONObject();
-                    replyData.put("message",
-                                  "Badly formatted request");
-                    reply.setData(replyData);
+                    reply.setData(Utilities.createJSONObject("message",
+                            "Badly formatted request"));
                 }
-                System.err.println(reply + " | " + reply.getData());
                 break;
             default:
                 return false;
