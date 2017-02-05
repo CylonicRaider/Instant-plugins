@@ -53,7 +53,7 @@ public class MessageHandler implements MessageHook {
                 } else {
                     reply = message.makeReply("error");
                     reply.setData(Utilities.createJSONObject("message",
-                            "Badly formatted request"));
+                        "Badly formatted request"));
                 }
                 break;
             default:
