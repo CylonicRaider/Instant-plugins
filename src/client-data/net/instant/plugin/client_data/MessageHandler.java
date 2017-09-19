@@ -18,7 +18,7 @@ public class MessageHandler implements MessageHook {
         manager = mgr;
     }
 
-    public void onJoin(PresenceChange change, MessageContents greeting) {
+    public void onConnect(PresenceChange change, MessageContents greeting) {
         UUID uuid = getUUID(change.getSource());
         if (uuid != null) manager.refresh(uuid);
     }
@@ -27,14 +27,13 @@ public class MessageHandler implements MessageHook {
         MessageContents msgd = message.getData();
         UUID uuid;
         String content;
-        MessageContents reply;
+        MessageContents response;
         switch (msgd.getType()) {
             case "get-cdata":
                 uuid = getUUID(message.getSource());
                 content = manager.getData(uuid);
-                reply = message.makeReply("cdata");
-                reply.setData(Utilities.createJSONObject("uuid", uuid,
-                                                         "data", content));
+                response = message.makeMessage("cdata");
+                response.updateData("uuid", uuid, "data", content);
                 break;
             case "set-cdata":
                 uuid = getUUID(message.getSource());
@@ -42,28 +41,27 @@ public class MessageHandler implements MessageHook {
                     content =
                         ((JSONObject) msgd.getData()).optString("data");
                     if (manager.setData(uuid, content)) {
-                        reply = message.makeReply("cdata");
-                        reply.setData(Utilities.createJSONObject("uuid", uuid,
-                            "data", content));
+                        response = message.makeMessage("cdata");
+                        response.updateData("uuid", uuid, "data", content);
                     } else {
-                        reply = message.makeReply("error");
-                        reply.setData(Utilities.createJSONObject("message",
-                            "Failed to set client data"));
+                        response = message.makeMessage("error");
+                        response.updateData("code", "CLDATA_UPD", "message",
+                                         "Failed to set client data");
                     }
                 } else {
-                    reply = message.makeReply("error");
-                    reply.setData(Utilities.createJSONObject("message",
-                        "Badly formatted request"));
+                    response = message.makeMessage("error");
+                    response.updateData("code", "CLDATA_BADREQ", "message",
+                        "Badly formatted request");
                 }
                 break;
             default:
                 return false;
         }
-        message.getRoom().sendUnicast(message.getSource(), reply);
+        message.sendResponse(response);
         return true;
     }
 
-    public void onLeave(PresenceChange change) {
+    public void onDisconnect(PresenceChange change) {
         /* NOP */
     }
 

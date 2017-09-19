@@ -11,15 +11,18 @@ Instant.clientData = function() {
     if (pending != null) return;
     pending = Instant.connection.sendSeq({type: 'get-cdata'});
   }
-  /* Handle a reply */
-  function handleReply(msg) {
+  /* Handle a response */
+  function handleResponse(msg) {
     if (msg.seq != null && msg.seq != pending) {
       return (msg.type == 'cdata');
     }
     if (msg.type == 'error') console.error('Could not set client data:', msg);
-    console.log(msg);
     try {
-      data = JSON.parse(msg.data.data);
+      if (msg.data.data) {
+        data = JSON.parse(msg.data.data);
+      } else {
+        data = {};
+      }
     } catch (e) {
       console.error(e);
       data = {};
@@ -31,9 +34,9 @@ Instant.clientData = function() {
     callbacks = [];
     return true;
   }
-  /* Listen for replies */
-  Instant.connection.addRawHandler('cdata', handleReply);
-  Instant.connection.addRawHandler('error', handleReply);
+  /* Listen for responses */
+  Instant.connection.addRawHandler('cdata', handleResponse);
+  Instant.connection.addRawHandler('error', handleResponse);
   return {
     /* Return client data
      * If force is true or data are not present (yet), a fresh copy is

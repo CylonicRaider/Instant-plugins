@@ -1,5 +1,5 @@
 
 Name: Instant-Plugin
-Depends: client-data
+Requires: client-data
 Frontend-Plugin: yes
 Frontend-libs: /static/client-data-client.js
