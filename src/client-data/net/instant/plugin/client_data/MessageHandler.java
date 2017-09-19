@@ -31,27 +31,26 @@ public class MessageHandler implements MessageHook {
         switch (msgd.getType()) {
             case "get-cdata":
                 uuid = getUUID(message.getSource());
-                content = manager.getData(uuid);
-                response = message.makeMessage("cdata");
-                response.updateData("uuid", uuid, "data", content);
+                response = message.makeMessage("cdata")
+                    .withData("uuid", uuid, "data", manager.getData(uuid));
                 break;
             case "set-cdata":
                 uuid = getUUID(message.getSource());
                 if (msgd.getData() instanceof JSONObject) {
-                    content =
-                        ((JSONObject) msgd.getData()).optString("data");
+                    JSONObject cData = (JSONObject) msgd.getData();
+                    content = cData.optString("data", null);
                     if (manager.setData(uuid, content)) {
-                        response = message.makeMessage("cdata");
-                        response.updateData("uuid", uuid, "data", content);
+                        response = message.makeMessage("cdata")
+                            .withData("uuid", uuid, "data", content);
                     } else {
-                        response = message.makeMessage("error");
-                        response.updateData("code", "CLDATA_UPD", "message",
-                                         "Failed to set client data");
+                        response = message.makeMessage("error")
+                            .withData("code", "CLDATA_UPD", "message",
+                                      "Failed to set client data");
                     }
                 } else {
-                    response = message.makeMessage("error");
-                    response.updateData("code", "CLDATA_BADREQ", "message",
-                        "Badly formatted request");
+                    response = message.makeMessage("error")
+                        .withData("code", "CLDATA_BADREQ", "message",
+                                  "Badly formatted request");
                 }
                 break;
             default:
