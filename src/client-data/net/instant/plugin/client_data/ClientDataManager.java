@@ -14,6 +14,9 @@ public class ClientDataManager {
     // the identification cookie.
     public static final long TIMEOUT = 63113904000L;
 
+    // A day.
+    private static final long GC_INTERVAL = 86400000;
+
     private final Connection conn;
     private final PreparedStatement checkStmt;
     private final PreparedStatement queryStmt;
@@ -125,8 +128,7 @@ public class ClientDataManager {
                 for (;;) {
                     gc();
                     try {
-                        // A day.
-                        Thread.sleep(86400000);
+                        Thread.sleep(GC_INTERVAL);
                     } catch (InterruptedException exc) {
                         break;
                     }
