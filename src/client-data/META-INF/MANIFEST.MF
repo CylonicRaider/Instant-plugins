@@ -1,4 +1,4 @@
-Main-Class: net.instant.plugin.client_data.ClientDataPlugin
 
 Name: Instant-Plugin
 Depends: sqlite
+Main-Class: net.instant.plugin.client_data.ClientDataPlugin
