@@ -19,15 +19,17 @@ build out:
 	mkdir $@
 
 build/%.jar: $$(shell find src/$$* -name '*.java' 2>/dev/null) | build
-	cd src/$* && javac $(JAVACFLAGS) $$(find . -name '*.java')
-	cd src/$* && jar cf ../../build/$*.jar $$(find . -name '*.class')
+	cd src/$* && find . -name '*.java' -print0 | xargs -0r \
+	    javac $(JAVACFLAGS)
+	cd src/$* && jar cf ../../build/$*.jar META-INF/MANIFEST.MF \
+	    $$(find . -name '*.class')
 
 out/%.jar: build/%.jar $$(shell find src/$$* lib/$$* -type f 2>/dev/null) \
-	| out
+    | out
 	cp build/$*.jar out/$*.jar
 	cd src/$* && jar uf ../../out/$*.jar $$(find . -type f -not -path \
-	'./META-INF/MANIFEST.MF')
+	    './META-INF/MANIFEST.MF')
 	[ -d lib/$* ] && cd lib/$* && jar uf ../../out/$*.jar $$(find . \
-	-type f -not -path './META-INF/MANIFEST.MF') || true
-	cd src/$* && [ -f META-INF/MANIFEST.MF ] && \
+	    -type f -not -path './META-INF/MANIFEST.MF') || true
+	    cd src/$* && [ -f META-INF/MANIFEST.MF ] && \
 	jar ufm ../../out/$*.jar META-INF/MANIFEST.MF || true
