@@ -15,7 +15,7 @@ public class ClientDataManager {
     public static final long TIMEOUT = 63113904000L;
 
     // A day.
-    private static final long GC_INTERVAL = 86400000;
+    public static final long GC_INTERVAL = 86400000;
 
     private final Connection conn;
     private final PreparedStatement checkStmt;
@@ -117,25 +117,12 @@ public class ClientDataManager {
         }
     }
 
-    public void startGCThread() {
-        new Thread() {
-
-            {
-                setDaemon(true);
-            }
-
+    public Runnable gcWorker() {
+        return new Runnable() {
             public void run() {
-                for (;;) {
-                    gc();
-                    try {
-                        Thread.sleep(GC_INTERVAL);
-                    } catch (InterruptedException exc) {
-                        break;
-                    }
-                }
+                gc();
             }
-
-        }.start();
+        };
     }
 
 }

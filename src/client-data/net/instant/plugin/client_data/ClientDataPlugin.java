@@ -32,7 +32,8 @@ public class ClientDataPlugin {
         synchronized (ClientDataPlugin.class) {
             dataManager = new ClientDataManager(conn);
         }
-        dataManager.startGCThread();
+        api.scheduleJob(dataManager.gcWorker(), 0,
+                        ClientDataManager.GC_INTERVAL);
         api.addMessageHook(new MessageHandler(dataManager));
     }
 
