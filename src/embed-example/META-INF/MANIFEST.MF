@@ -1,0 +1,4 @@
+
+Name: Instant-Plugin
+Frontend-Plugin: yes
+Frontend-libs: /static/embed-example.js
