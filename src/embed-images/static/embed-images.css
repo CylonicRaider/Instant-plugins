@@ -1,0 +1,16 @@
+
+/* Instant image embedder stylesheet */
+
+.message-text a.embed-image {
+  /* Ensure the outline looks nicely */
+  display: block;
+}
+
+.message-text img.embed-image {
+  /* Ensure there is no gap below the image */
+  display: block;
+  max-width: 320px;
+  max-height: 180px;
+  min-width: 1.2em;
+  min-height: 1.2em;
+}

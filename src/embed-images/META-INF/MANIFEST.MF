@@ -1,0 +1,6 @@
+
+Name: Instant-Plugin
+Main-Class: net.instant.plugin.embed_images.EmbedImagesPlugin
+Frontend-Plugin: yes
+Frontend-styles: /static/embed-images.css
+Frontend-libs: /static/embed-images.js
