@@ -34,6 +34,7 @@ public class EmbedImagesPlugin {
         } else {
             configURL = defaultConfigURL;
         }
+        LOGGER.config("Reading configuration file: " + configURL);
         InputStream stream;
         try {
             stream = configURL.openStream();
