@@ -4,6 +4,7 @@
 .message-text a.embed-image {
   /* Ensure the outline looks nicely */
   display: block;
+  outline-offset: 1px;
 }
 
 .message-text img.embed-image {
@@ -13,4 +14,9 @@
   max-height: 180px;
   min-width: 1.2em;
   min-height: 1.2em;
+}
+
+.message-text img.embed-image.loading {
+  width: 1.2em;
+  height: 1.2em;
 }
