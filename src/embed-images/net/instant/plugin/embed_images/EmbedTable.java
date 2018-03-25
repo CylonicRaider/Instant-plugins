@@ -63,18 +63,21 @@ public class EmbedTable {
                 Matcher m = FIELD.matcher(line);
                 if (! m.lookingAt())
                     throw new TableSyntaxException("Invalid syntax at " +
-                        reader.getLineNumber() + " (invalid first field)");
+                        "line " + reader.getLineNumber() + " (invalid " +
+                        "first field)");
                 String k = unescape(m.group(1));
                 /* Match the second field */
                 m.region(m.end(), line.length());
                 if (! m.lookingAt())
                     throw new TableSyntaxException("Invalid syntax at " +
-                        reader.getLineNumber() + " (invalid second field)");
+                        "line " + reader.getLineNumber() + " (invalid " +
+                        "second field)");
                 String v = unescape(m.group(1));
                 /* Ensure we're actually at the end of the input */
                 if (! m.group(3).isEmpty())
                     throw new TableSyntaxException("Invalid syntax at " +
-                        reader.getLineNumber() + " (too many fields)");
+                        "line " + reader.getLineNumber() + " (too many " +
+                        "fields)");
                 table.put(k, v);
             }
         } finally {
