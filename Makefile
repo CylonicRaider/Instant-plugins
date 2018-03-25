@@ -19,6 +19,7 @@ build out:
 	mkdir $@
 
 build/%.jar: $$(shell find src/$$* -name '*.java' 2>/dev/null) | build
+	find src/$* -name '*.class' -exec rm {} +
 	cd src/$* && find . -name '*.java' -print0 | xargs -0r \
 	    javac $(JAVACFLAGS)
 	cd src/$* && jar cf ../../build/$*.jar META-INF/MANIFEST.MF \
