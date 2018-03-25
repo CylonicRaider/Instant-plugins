@@ -7,7 +7,6 @@ import net.instant.api.MessageContents;
 import net.instant.api.MessageHook;
 import net.instant.api.PresenceChange;
 import net.instant.api.RequestResponseData;
-import net.instant.api.Utilities;
 import org.json.JSONObject;
 
 public class MessageHandler implements MessageHook {
