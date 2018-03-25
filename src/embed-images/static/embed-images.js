@@ -18,22 +18,23 @@ Instant.plugins.mailbox('embed-images').handle(function(data) {
     }
   }
   data.forEach(function(elem) {
-    var re = new RegExp(elem[0]), subs = elem[1];
+    var re = new RegExp(elem[0]), srcSubs = elem[1], urlSubs = elem[2];
+    if (urlSubs == null) urlSubs = srcSubs;
     Instant.message.parser.addEmbedder(re, function(url) {
-      return $makeNode('a', 'embed-image', {href: url, target: '_blank'}, [
-        ['img', 'embed-image', {src: url.replace(re, subs)}]
+      return $makeNode('a', 'embed-image', {href: url.replace(re, urlSubs),
+          target: '_blank'}, [
+        ['img', 'embed-image', {src: url.replace(re, srcSubs)}]
       ]);
     }, {normalize: true});
   });
-  if (data.length)
-    Instant.message.parser.addProcessor(function(node) {
-      if (! node.classList.contains('in-chat')) return;
-      var images = $selAll('img.embed-image:not(.loading)', node);
-      Array.prototype.forEach.call(images, function(img) {
-        img.classList.add('loading');
-        img.addEventListener('load', finishLoading);
-        img.addEventListener('error', finishLoading);
-        checkSize(img);
-      });
+  Instant.message.parser.addProcessor(function(node) {
+    if (! node.classList.contains('in-chat')) return;
+    var images = $selAll('img.embed-image:not(.loading)', node);
+    Array.prototype.forEach.call(images, function(img) {
+      img.classList.add('loading');
+      img.addEventListener('load', finishLoading);
+      img.addEventListener('error', finishLoading);
+      checkSize(img);
     });
+  });
 });
