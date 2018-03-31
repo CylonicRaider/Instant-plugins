@@ -1,0 +1,6 @@
+
+Name: Instant-Plugin
+Requires: embed-images
+Main-Class: net.instant.plugin.memes.MemesPlugin
+Frontend-Plugin: yes
+Frontend-deps: embed-images
