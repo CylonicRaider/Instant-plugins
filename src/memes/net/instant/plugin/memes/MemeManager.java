@@ -23,12 +23,12 @@ public class MemeManager {
     private static final Pattern IGNORE_LINE = Pattern.compile(
         "\\s*(#.*)?");
     private static final Pattern ASSIGN_LINE = Pattern.compile(
-        "\\s*([^=]+)\\s*=\\s*(.*)\\s*");
+        "\\s*([^=]*[^=\\s])\\s*=\\s*(.*)\\s*");
     private static final Pattern MEME_LINE = Pattern.compile(
         "\\s*([^|]*[^|\\s])\\s*\\|\\s*([^|]*[^|\\s])\\s*\\|" +
         "\\s*([^|]*[^|\\s])\\s*");
 
-    public static final int DEFAULT_FONT_SIZE = 12;
+    public static final int DEFAULT_FONT_SIZE = 24;
 
     private final Map<String, MemeTemplate> templates;
     private MemeRenderer renderer;
@@ -79,9 +79,9 @@ public class MemeManager {
         BufferedImage backgroundImage = null;
         Font rendererFont = new Font(Font.SANS_SERIF, Font.PLAIN,
                                      DEFAULT_FONT_SIZE);
-        Color textColor = Color.WHITE;
-        Color outlineColor = Color.BLACK;
-        float outlineWidth = 1.0f;
+        Color textColor = Color.BLACK;
+        Color outlineColor = null;
+        float outlineFactor = 0.01f;
         for (;;) {
             String line = reader.readLine();
             if (line == null) break;
@@ -119,8 +119,8 @@ public class MemeManager {
                         case "outline-color":
                             outlineColor = Color.decode(value);
                             break;
-                        case "outline-width":
-                            outlineWidth = Float.parseFloat(value);
+                        case "outline-factor":
+                            outlineFactor = Float.parseFloat(value);
                             break;
                         default:
                             throw new ConfigException("Invalid setting: " +
@@ -145,8 +145,10 @@ public class MemeManager {
             throw new ConfigException("Line " + reader.getLineNumber() +
                 " is invalid");
         }
+        if (backgroundImage == null)
+            throw new ConfigException("No background image defined");
         renderer = new MemeRenderer(backgroundImage, rendererFont, textColor,
-                                    outlineColor, outlineWidth);
+                                    outlineColor, outlineFactor);
     }
 
     private static BufferedImage loadImage(URL source) throws IOException {

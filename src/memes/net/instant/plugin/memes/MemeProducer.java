@@ -118,9 +118,13 @@ public class MemeProducer implements RequestHook {
         MemeTemplate topTemplate = manager.template(topName),
                      bottomTemplate = manager.template(bottomName);
         if (topTemplate == null || bottomTemplate == null) return false;
-        Map<String, String> params = Utilities.parseQueryString(parts[1]);
-        String topText = params.get("topText"),
-               bottomText = params.get("bottomText");
+        String topText = null, bottomText = null;
+        if (parts[1] != null) {
+            Map<String, String> params = Utilities.parseQueryString(
+                parts[1]);
+            topText = params.get("topText");
+            bottomText = params.get("bottomText");
+        }
         if (topText == null) topText = "";
         if (bottomText == null) bottomText = "";
         MemeRequest task = new MemeRequest(
@@ -128,6 +132,7 @@ public class MemeProducer implements RequestHook {
             bottomTemplate.createComponent(bottomText),
             type);
         requests.put(req, task);
+        executor.execute(task);
         return true;
     }
 

@@ -1,16 +1,18 @@
 package net.instant.plugin.memes;
 
+import java.awt.BasicStroke;
 import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.Shape;
+import java.awt.Stroke;
 import java.awt.font.FontRenderContext;
 import java.awt.font.LineBreakMeasurer;
+import java.awt.font.TextAttribute;
 import java.awt.font.TextLayout;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
-import java.text.AttributedCharacterIterator;
 import java.text.AttributedString;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,10 +53,9 @@ public class MemeComponent {
         }
 
         public static Line centered(TextLayout text, float width, float y) {
-            // TODO: Adjust for bounds.getX().
             Rectangle2D bounds = text.getBounds();
-            return new Line(text, (float) (width - bounds.getWidth()) / 2,
-                            y);
+            double x = (width - bounds.getWidth()) / 2  - bounds.getX();
+            return new Line(text, (float) x, y);
         }
 
     }
@@ -84,8 +85,6 @@ public class MemeComponent {
         if (text.isEmpty()) return;
         // Now the fun part, find a font size at which the entire text fits
         // into the rectangle.
-        AttributedCharacterIterator chars =
-            new AttributedString(text).getIterator();
         Font origFont = g.getFont();
         float fontSize = origFont.getSize();
         List<Line> lines;
@@ -93,15 +92,21 @@ public class MemeComponent {
             g.setFont(origFont.deriveFont(fontSize));
             fontSize -= 1;
             if (fontSize <= 0) return;
-            lines = typeset(chars, g.getFontRenderContext(),
+            lines = typeset(text, g.getFont(), g.getFontRenderContext(),
                             r.width, r.height);
         } while (lines == null);
-        // And draw the resulting lines.
+        // Vertically align it.
+        // The text is adjusted to have its top at y=0.
+        float textHeight = lines.get(lines.size() - 1).getBottom();
+        float yshift = (r.height - textHeight) * valign;
+        // And draw the resulting text.
+        Stroke origStroke = g.getStroke();
+        g.setStroke(new BasicStroke(fontSize * parent.getOutlineFactor()));
         AffineTransform tr = g.getTransform();
         for (Line l : lines) {
             Shape shape = l.getText().getOutline(null);
             g.setTransform(tr);
-            g.translate(l.getX(), l.getY());
+            g.translate(r.x + l.getX(), r.y + yshift + l.getY());
             g.setColor(parent.getTextColor());
             g.fill(shape);
             if (parent.getOutlineColor() != null) {
@@ -110,22 +115,25 @@ public class MemeComponent {
             }
         }
         g.setTransform(tr);
+        g.setStroke(origStroke);
         g.setFont(origFont);
     }
 
-    private List<Line> typeset(AttributedCharacterIterator chars,
-                               FontRenderContext ctx,
+    private List<Line> typeset(String text, Font font, FontRenderContext ctx,
                                float width, float maxHeight) {
-        LineBreakMeasurer measurer = new LineBreakMeasurer(chars, ctx);
+        AttributedString chars = new AttributedString(text);
+        chars.addAttribute(TextAttribute.FONT, font);
+        LineBreakMeasurer measurer = new LineBreakMeasurer(
+            chars.getIterator(), ctx);
         List<Line> ret = new ArrayList<Line>();
         float y = 0.0f;
-        while (measurer.getPosition() < chars.getEndIndex()) {
+        while (measurer.getPosition() < text.length()) {
             TextLayout item = measurer.nextLayout(width);
             if (ret.isEmpty()) y += item.getAscent();
             Line l = Line.centered(item, width, y);
             if (l.getBottom() > maxHeight) return null;
             ret.add(l);
-            y += item.getLeading();
+            y += item.getAscent() + item.getDescent() + item.getLeading();
         }
         return ret;
     }
