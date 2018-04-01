@@ -1,5 +1,6 @@
 package net.instant.plugin.memes;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
@@ -15,15 +16,17 @@ public class MemeRenderer {
     private final Font font;
     private final Color textColor;
     private final Color outlineColor;
+    private final float outlineWidth;
 
     public MemeRenderer(BufferedImage background, Font font, Color textColor,
-                        Color outlineColor) {
+                        Color outlineColor, float outlineWidth) {
         if (background == null || font == null || textColor == null)
             throw new NullPointerException();
         this.background = background;
         this.font = font;
         this.textColor = textColor;
         this.outlineColor = outlineColor;
+        this.outlineWidth = outlineWidth;
     }
 
     public BufferedImage getBackground() {
@@ -42,6 +45,10 @@ public class MemeRenderer {
         return outlineColor;
     }
 
+    public float getOutlineWidth() {
+        return outlineWidth;
+    }
+
     public void ensureCompatible(MemeComponent component) {
         if (component.getImage().getWidth() != background.getWidth() ||
                 component.getImage().getHeight() != background.getHeight())
@@ -54,7 +61,8 @@ public class MemeRenderer {
         BufferedImage result = duplicate(background);
         Graphics2D g = result.createGraphics();
         try {
-            g.setFont(this.font);
+            g.setStroke(new BasicStroke(outlineWidth));
+            g.setFont(font);
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
                                RenderingHints.VALUE_ANTIALIAS_ON);
             int w = result.getWidth(), h = result.getHeight();
