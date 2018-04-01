@@ -11,12 +11,13 @@ import java.io.LineNumberReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.imageio.ImageIO;
+import net.instant.api.Utilities;
 
 public class MemeManager {
 
@@ -35,7 +36,7 @@ public class MemeManager {
 
     public MemeManager(MemeRenderer renderer) {
         this.templates = Collections.synchronizedMap(
-            new HashMap<String, MemeTemplate>());
+            new LinkedHashMap<String, MemeTemplate>());
         this.renderer = renderer;
     }
     public MemeManager() {
@@ -59,6 +60,24 @@ public class MemeManager {
     }
     public void setRenderer(MemeRenderer r) {
         renderer = r;
+    }
+
+    public String getFrontendData() {
+        StringBuilder sb = new StringBuilder("[");
+        boolean first = true;
+        for (MemeTemplate t : templates()) {
+            if (first) {
+                first = false;
+            } else {
+                sb.append(", ");
+            }
+            sb.append("[");
+            sb.append(Utilities.escapeStringJS(t.getName(), true));
+            sb.append(", ");
+            sb.append(Utilities.escapeStringJS(t.getDescription(), true));
+            sb.append("]");
+        }
+        return sb.append("]").toString();
     }
 
     public MemeComponent component(String name, String text) {
