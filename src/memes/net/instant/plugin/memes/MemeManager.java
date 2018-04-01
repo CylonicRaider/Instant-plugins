@@ -38,6 +38,9 @@ public class MemeManager {
             new HashMap<String, MemeTemplate>());
         this.renderer = renderer;
     }
+    public MemeManager() {
+        this(null);
+    }
 
     public Map<String, MemeTemplate> getTemplates() {
         return templates;
@@ -64,8 +67,7 @@ public class MemeManager {
         return template.createComponent(text);
     }
 
-    public void parseConfig(URL source)
-            throws ConfigException, IOException {
+    public void loadConfig(URL source) throws ConfigException, IOException {
         InputStream stream = source.openStream();
         LineNumberReader reader = new LineNumberReader(
             new InputStreamReader(stream));
