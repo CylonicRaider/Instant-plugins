@@ -128,6 +128,7 @@ public class MemeProducer implements RequestHook {
         if (topText == null) topText = "";
         if (bottomText == null) bottomText = "";
         resp.respond(200, "OK", -1);
+        resp.addHeader("Cache-Control", "public; max-age=3600");
         MemeRequest task = new MemeRequest(
             topTemplate.createComponent(topText),
             bottomTemplate.createComponent(bottomText),
