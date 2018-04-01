@@ -61,10 +61,14 @@ public class MemeManager {
         renderer = r;
     }
 
-    public MemeComponent getComponent(String name, String text) {
+    public MemeComponent component(String name, String text) {
         MemeTemplate template = templates.get(name);
         if (template == null) return null;
         return template.createComponent(text);
+    }
+
+    public BufferedImage render(MemeComponent top, MemeComponent bottom) {
+        return renderer.render(top, bottom);
     }
 
     public void loadConfig(URL source) throws ConfigException, IOException {

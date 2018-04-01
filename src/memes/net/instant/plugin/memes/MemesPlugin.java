@@ -44,6 +44,7 @@ public class MemesPlugin {
             LOGGER.log(Level.SEVERE, "Could not load configuration", exc);
             return null;
         }
+        api.addRequestHook(new MemeProducer(mgr));
         return mgr;
     }
 
