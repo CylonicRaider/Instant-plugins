@@ -122,8 +122,8 @@ public class MemeProducer implements RequestHook {
         if (parts[1] != null) {
             Map<String, String> params = Utilities.parseQueryString(
                 parts[1]);
-            topText = params.get("topText");
-            bottomText = params.get("bottomText");
+            topText = params.get("top");
+            bottomText = params.get("bottom");
         }
         if (topText == null) topText = "";
         if (bottomText == null) bottomText = "";
