@@ -80,12 +80,6 @@ public class MemeManager {
         return sb.append("]").toString();
     }
 
-    public MemeComponent component(String name, String text) {
-        MemeTemplate template = templates.get(name);
-        if (template == null) return null;
-        return template.createComponent(text);
-    }
-
     public BufferedImage render(MemeComponent top, MemeComponent bottom) {
         return renderer.render(top, bottom);
     }

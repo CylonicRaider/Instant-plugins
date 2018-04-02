@@ -119,19 +119,24 @@ public class MemeProducer implements RequestHook {
                      bottomTemplate = manager.template(bottomName);
         if (topTemplate == null || bottomTemplate == null) return false;
         String topText = null, bottomText = null;
+        boolean flipTop = false, flipBottom = false;
         if (parts[1] != null) {
             Map<String, String> params = Utilities.parseQueryString(
                 parts[1]);
             topText = params.get("top");
             bottomText = params.get("bottom");
+            if (Utilities.isTrue(params.get("flip")))
+                flipTop = flipBottom = true;
+            if (Utilities.isTrue(params.get("flop")))
+                flipBottom ^= true;
         }
         if (topText == null) topText = "";
         if (bottomText == null) bottomText = "";
         resp.respond(200, "OK", -1);
         resp.addHeader("Cache-Control", "public; max-age=3600");
         MemeRequest task = new MemeRequest(
-            topTemplate.createComponent(topText),
-            bottomTemplate.createComponent(bottomText),
+            topTemplate.createComponent(topText, flipTop),
+            bottomTemplate.createComponent(bottomText, flipBottom),
             type);
         requests.put(req, task);
         executor.execute(task);

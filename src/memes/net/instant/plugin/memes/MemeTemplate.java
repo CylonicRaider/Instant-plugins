@@ -27,8 +27,11 @@ public class MemeTemplate {
         return image;
     }
 
+    public MemeComponent createComponent(String text, boolean flip) {
+        return new MemeComponent(image, text, flip);
+    }
     public MemeComponent createComponent(String text) {
-        return new MemeComponent(image, text);
+        return createComponent(text, false);
     }
 
 }

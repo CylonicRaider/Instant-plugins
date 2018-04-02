@@ -62,10 +62,15 @@ public class MemeComponent {
 
     private final BufferedImage image;
     private final String text;
+    private final boolean flipped;
 
-    public MemeComponent(BufferedImage image, String text) {
+    public MemeComponent(BufferedImage image, String text, boolean flipped) {
         this.image = image;
         this.text = text;
+        this.flipped = flipped;
+    }
+    public MemeComponent(BufferedImage image, String text) {
+        this(image, text, false);
     }
 
     public BufferedImage getImage() {
@@ -76,10 +81,20 @@ public class MemeComponent {
         return text;
     }
 
+    public boolean isFlipped() {
+        return flipped;
+    }
+
     public void render(MemeRenderer parent, Graphics2D g, Rectangle r,
                        float valign) {
+        int dl = r.x, dr = r.x;
+        if (flipped) {
+            dl += r.width;
+        } else {
+            dr += r.width;
+        }
         g.drawImage(image,
-                    r.x, r.y, r.x + r.width, r.y + r.height,
+                    dl,  r.y, dr,            r.y + r.height,
                     r.x, r.y, r.x + r.width, r.y + r.height,
                     null);
         if (text.isEmpty()) return;
