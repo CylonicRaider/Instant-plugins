@@ -1,6 +1,5 @@
 package net.instant.plugin.memes;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -20,17 +19,14 @@ public class MemesPlugin {
     public static Object initInstantPlugin1(API1 api, PluginData data) {
         api.handleDefault(data);
         String config = api.getConfiguration("memes.config");
-        URL configURL;
+        URL configURL = defaultConfigURL;
         if (Utilities.nonempty(config)) {
             try {
-                configURL = new File(config).toURI().toURL();
+                configURL = Utilities.makeURL(config);
             } catch (MalformedURLException exc) {
                 LOGGER.log(Level.SEVERE, "Invalid configuration path; " +
                            "using default", exc);
-                configURL = defaultConfigURL;
             }
-        } else {
-            configURL = defaultConfigURL;
         }
         LOGGER.config("Loading configuration file: " + configURL);
         MemeManager mgr = new MemeManager();
