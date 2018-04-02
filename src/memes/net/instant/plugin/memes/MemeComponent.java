@@ -60,6 +60,14 @@ public class MemeComponent {
 
     }
 
+    /* According to the heading comment of the sun.font.FontDesignMetrics
+     * class (TODO: find better reference), as default, Java assumes 72 ppi,
+     * so that a pixel is also a (typographical) point (which is defined to
+     * be 1/72 inch). Comparison of pixel sizes of characters rendered by
+     * this code and a Web browser (which uses CSS units, which in turn
+     * assume 96 ppi) confirms the hypothesis. */
+    private static final float PIXELS_PER_POINT = 1.0f;
+
     private final BufferedImage image;
     private final String text;
     private final boolean flipped;
@@ -116,7 +124,8 @@ public class MemeComponent {
         float yshift = (r.height - textHeight) * valign;
         // And draw the resulting text.
         Stroke origStroke = g.getStroke();
-        g.setStroke(new BasicStroke(fontSize * parent.getOutlineFactor()));
+        g.setStroke(new BasicStroke(fontSize * PIXELS_PER_POINT *
+            parent.getOutlineFactor()));
         AffineTransform tr = g.getTransform();
         for (Line l : lines) {
             Shape shape = l.getText().getOutline(null);
