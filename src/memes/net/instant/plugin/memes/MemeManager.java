@@ -90,17 +90,34 @@ public class MemeManager {
         return renderer.render(top, bottom);
     }
 
+    public void reset() {
+        renderer = null;
+        templates.clear();
+    }
+
     public void loadConfig(URL source) throws ConfigException, IOException {
         InputStream stream = source.openStream();
         LineNumberReader reader = new LineNumberReader(
             new InputStreamReader(stream));
-        templates.clear();
-        BufferedImage backgroundImage = null;
-        Font rendererFont = new Font(Font.SANS_SERIF, Font.PLAIN,
+        BufferedImage backgroundImage;
+        Font rendererFont;
+        Color textColor;
+        Color outlineColor;
+        float outlineFactor;
+        if (renderer != null) {
+            backgroundImage = renderer.getBackground();
+            rendererFont = renderer.getFont();
+            textColor = renderer.getTextColor();
+            outlineColor = renderer.getOutlineColor();
+            outlineFactor = renderer.getOutlineFactor();
+        } else {
+            backgroundImage = null;
+            rendererFont = new Font(Font.SANS_SERIF, Font.PLAIN,
                                      DEFAULT_FONT_SIZE);
-        Color textColor = Color.BLACK;
-        Color outlineColor = null;
-        float outlineFactor = 0.01f;
+            textColor = Color.BLACK;
+            outlineColor = null;
+            outlineFactor = 0.01f;
+        }
         for (;;) {
             String line = reader.readLine();
             if (line == null) break;
