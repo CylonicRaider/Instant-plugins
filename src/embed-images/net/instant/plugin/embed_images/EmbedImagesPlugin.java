@@ -1,6 +1,5 @@
 package net.instant.plugin.embed_images;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -21,29 +20,20 @@ public class EmbedImagesPlugin {
 
     public static Object initInstantPlugin1(API1 api, PluginData data) {
         api.handleDefault(data);
+        URL configURL = defaultConfigURL;
         String config = api.getConfiguration("embed-images.config");
-        URL configURL;
         if (Utilities.nonempty(config)) {
             try {
-                configURL = new File(config).toURI().toURL();
+                configURL = Utilities.makeURL(config);
             } catch (MalformedURLException exc) {
                 LOGGER.log(Level.SEVERE, "Invalid configuration path; " +
                            "using default", exc);
-                configURL = defaultConfigURL;
             }
-        } else {
-            configURL = defaultConfigURL;
         }
         LOGGER.config("Reading configuration file: " + configURL);
-        InputStream stream;
-        try {
-            stream = configURL.openStream();
-        } catch (IOException exc) {
-            LOGGER.log(Level.SEVERE, "Could not fetch configuration", exc);
-            return null;
-        }
         EmbedTable tab;
         try {
+            InputStream stream = configURL.openStream();
             tab = EmbedTable.parse(stream);
         } catch (IOException exc) {
             LOGGER.log(Level.SEVERE, "I/O error while reading configuration",
