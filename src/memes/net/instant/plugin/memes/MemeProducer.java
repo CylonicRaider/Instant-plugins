@@ -2,6 +2,7 @@ package net.instant.plugin.memes;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Map;
@@ -74,7 +75,7 @@ public class MemeProducer implements RequestHook {
             ByteBufferOutputStream stream = new ByteBufferOutputStream();
             ByteBuffer r;
             try {
-                ImageIO.write(meme, type, stream);
+                writeImage(meme, type, stream);
                 r = stream.toByteBuffer();
             } catch (IOException exc) {
                 // Should not happen...
@@ -165,5 +166,10 @@ public class MemeProducer implements RequestHook {
     public void onClose(ClientConnection req, boolean normal) {}
 
     public void onError(ClientConnection req, Exception exc) {}
+
+    private static void writeImage(BufferedImage image, String type,
+            OutputStream stream) throws IOException {
+        ImageIO.write(image, type, stream);
+    }
 
 }
