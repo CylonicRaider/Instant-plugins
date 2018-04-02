@@ -5,7 +5,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -48,9 +47,8 @@ public class EmbedTable {
 
     private final List<Entry> table;
 
-    public EmbedTable(List<Entry> table) {
-        this.table = Collections.unmodifiableList(new ArrayList<Entry>(
-            table));
+    public EmbedTable() {
+        this.table = new ArrayList<Entry>();
     }
 
     public List<Entry> getTable() {
@@ -80,9 +78,12 @@ public class EmbedTable {
         return sb.append("]").toString();
     }
 
-    public static EmbedTable parse(InputStream stream)
+    public void reset() {
+        table.clear();
+    }
+
+    public void parseConfig(InputStream stream)
             throws IOException, TableSyntaxException {
-        List<Entry> table = new ArrayList<Entry>();
         LineNumberReader reader = new LineNumberReader(
             new InputStreamReader(stream));
         try {
@@ -127,7 +128,6 @@ public class EmbedTable {
         } finally {
             reader.close();
         }
-        return new EmbedTable(table);
     }
 
     private static final String unescape(String input) {

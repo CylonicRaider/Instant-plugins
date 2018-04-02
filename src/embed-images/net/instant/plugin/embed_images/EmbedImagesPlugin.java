@@ -31,10 +31,10 @@ public class EmbedImagesPlugin {
             }
         }
         LOGGER.config("Reading configuration file: " + configURL);
-        EmbedTable tab;
+        EmbedTable tab = new EmbedTable();
         try {
             InputStream stream = configURL.openStream();
-            tab = EmbedTable.parse(stream);
+            tab.parseConfig(stream);
         } catch (IOException exc) {
             LOGGER.log(Level.SEVERE, "I/O error while reading configuration",
                        exc);
