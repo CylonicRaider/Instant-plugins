@@ -1,8 +1,12 @@
 
 JAVACFLAGS = -Xlint:all -Xlint:-serial -Werror
 
+# HACK: Make's syntax is... simplicistic.
+SPACE := $(subst ,, )
+
 PLUGIN_NAMES = $(patsubst src/%,%,$(wildcard src/*))
 PLUGIN_ARCHIVES = $(patsubst %,out/%.jar,$(PLUGIN_NAMES))
+PLUGIN_CLASSPATH = $(subst $(SPACE),:,$(patsubst %,../%,$(PLUGIN_NAMES)))
 
 .PHONY: all clean
 
@@ -21,7 +25,7 @@ build out:
 build/%.jar: $$(shell find src/$$* -name '*.java' 2>/dev/null) | build
 	find src/$* -name '*.class' -exec rm {} +
 	cd src/$* && find . -name '*.java' -print0 | xargs -0r \
-	    javac $(JAVACFLAGS)
+	    javac -cp $(CLASSPATH):$(PLUGIN_CLASSPATH) $(JAVACFLAGS)
 	cd src/$* && jar cf ../../build/$*.jar META-INF/MANIFEST.MF \
 	    $$(find . -name '*.class')
 
