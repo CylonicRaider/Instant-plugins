@@ -58,11 +58,15 @@ void function() {
       buttons: [{
         text: 'Preview',
         onclick: function() {
-          var img = document.createElement('img');
+          var url = makeMemeURL('real');
+          var link = $makeNode('a', {target: '_blank', href: url}, [
+            ['img']
+          ]);
+          var img = $sel('img', link);
           img.addEventListener('load', function() {
             while (previewContainer.firstChild)
               previewContainer.removeChild(previewContainer.firstChild);
-            previewContainer.appendChild(img);
+            previewContainer.appendChild(link);
           });
           img.addEventListener('error', function() {
             Instant.popups.addNewMessage(popup, {content: $makeFrag(

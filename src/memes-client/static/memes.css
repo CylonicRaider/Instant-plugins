@@ -25,12 +25,17 @@
   transition: initial !important;
 }
 
+.meme-preview {
+  text-align: center;
+}
 .meme-preview:not(:empty) {
   margin-top: 5px;
 }
+.meme-preview a, img {
+  display: inline-block;
+  vertical-align: top;
+}
 .meme-preview img {
-  display: block;
-  margin: auto;
   width: 100%;
   max-width: 15em;
 }
