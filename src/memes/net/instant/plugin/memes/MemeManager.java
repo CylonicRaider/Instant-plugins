@@ -95,12 +95,14 @@ public class MemeManager {
             new InputStreamReader(stream));
         BufferedImage backgroundImage;
         Font rendererFont;
+        float wrappingCutoff;
         Color textColor;
         Color outlineColor;
         float outlineFactor;
         if (renderer != null) {
             backgroundImage = renderer.getBackground();
             rendererFont = renderer.getFont();
+            wrappingCutoff = renderer.getWrappingCutoff();
             textColor = renderer.getTextColor();
             outlineColor = renderer.getOutlineColor();
             outlineFactor = renderer.getOutlineFactor();
@@ -108,6 +110,7 @@ public class MemeManager {
             backgroundImage = null;
             rendererFont = new Font(Font.SANS_SERIF, Font.PLAIN,
                                      DEFAULT_FONT_SIZE);
+            wrappingCutoff = Float.POSITIVE_INFINITY;
             textColor = Color.BLACK;
             outlineColor = null;
             outlineFactor = 0.01f;
@@ -143,6 +146,9 @@ public class MemeManager {
                             rendererFont = rendererFont.deriveFont(
                                 (float) Integer.parseInt(value));
                             break;
+                        case "wordbreak-cutoff":
+                            wrappingCutoff = Float.parseFloat(value);
+                            break;
                         case "text-color":
                             textColor = Color.decode(value);
                             break;
@@ -177,8 +183,8 @@ public class MemeManager {
         }
         if (backgroundImage == null)
             throw new ConfigException("No background image defined");
-        renderer = new MemeRenderer(backgroundImage, rendererFont, textColor,
-                                    outlineColor, outlineFactor);
+        renderer = new MemeRenderer(backgroundImage, rendererFont,
+            wrappingCutoff, textColor, outlineColor, outlineFactor);
     }
 
     private static BufferedImage loadImage(URL source) throws IOException {

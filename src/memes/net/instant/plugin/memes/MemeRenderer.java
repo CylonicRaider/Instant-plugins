@@ -13,16 +13,19 @@ public class MemeRenderer {
 
     private final BufferedImage background;
     private final Font font;
+    private final float wrappingCutoff;
     private final Color textColor;
     private final Color outlineColor;
     private final float outlineFactor;
 
-    public MemeRenderer(BufferedImage background, Font font, Color textColor,
-                        Color outlineColor, float outlineFactor) {
+    public MemeRenderer(BufferedImage background, Font font,
+            float wrappingCutoff, Color textColor, Color outlineColor,
+            float outlineFactor) {
         if (background == null || font == null || textColor == null)
             throw new NullPointerException();
         this.background = background;
         this.font = font;
+        this.wrappingCutoff = wrappingCutoff;
         this.textColor = textColor;
         this.outlineColor = outlineColor;
         this.outlineFactor = outlineFactor;
@@ -34,6 +37,10 @@ public class MemeRenderer {
 
     public Font getFont() {
         return font;
+    }
+
+    public float getWrappingCutoff() {
+        return wrappingCutoff;
     }
 
     public Color getTextColor() {
