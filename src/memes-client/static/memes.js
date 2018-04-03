@@ -2,6 +2,15 @@
 /* Instant meme plugin functionality */
 
 void function() {
+  function makeQuery(values) {
+    var ret = '';
+    for (var k in values) {
+      if (! values.hasOwnProperty(k) || ! values[k]) continue;
+      ret += (ret) ? '&' : '?';
+      ret += encodeURIComponent(k) + '=' + encodeURIComponent(values[k]);
+    }
+    return ret;
+  }
   /* Install image handler */
   Instant.plugins.mailbox('embed-images').post([[
     '^meme:instant/([a-zA-Z0-9_-]+(/[a-zA-Z0-9_-]+)?\\.[a-z]+(\\?.*)?)$',
@@ -15,8 +24,8 @@ void function() {
     function makeMemeURL(mode) {
       var url = 'meme:instant/' + topImage.value;
       if (enableBottomImage.checked) url += '/' + bottomImage.value;
-      url += '.jpg?top=' + encodeURIComponent(topText.value) +
-        '&bottom=' + encodeURIComponent(bottomText.value);
+      url += '.jpg' + makeQuery({top: topText.value,
+                                 bottom: bottomText.value});
       if (mode == 'real') {
         return url.replace(/^meme:instant/, '/meme');
       } else if (mode == 'embed') {
@@ -25,8 +34,14 @@ void function() {
         return url;
       }
     }
-    if (installed) return;
+    if (installed || ! data.length) return;
     installed = true;
+    /* Sort data for user display */
+    var defaultItem = data[0][0];
+    data.sort(function(a, b) {
+      var keyA = a[1], keyB = b[1];
+      return (keyA > keyB) - (keyA < keyB);
+    });
     /* Install UI elements */
     var popup = Instant.popups.make({
       title: 'Meme generator',
@@ -106,10 +121,10 @@ void function() {
     var topText = $cls('top-text', popup);
     var bottomText = $cls('bottom-text', popup);
     for (var i = 0; i < data.length; i++) {
-      topImage.appendChild($makeNode('option', {value: data[i][0]},
-                                     data[i][1]));
-      bottomImage.appendChild($makeNode('option', {value: data[i][0]},
-                                        data[i][1]));
+      var attrs = {value: data[i][0]};
+      if (attrs.value == defaultItem) attrs.selected = 'selected';
+      topImage.appendChild($makeNode('option', attrs, data[i][1]));
+      bottomImage.appendChild($makeNode('option', attrs, data[i][1]));
     }
     var enableBottomImage = $sel('#enable-bottom-image', popup);
     enableBottomImage.addEventListener('click', updateBottomImage);
