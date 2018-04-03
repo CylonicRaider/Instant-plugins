@@ -1,0 +1,8 @@
+
+Name: Instant-Plugin
+Depends: memes,embed-images
+Main-Class: net.instant.plugin.memes_client.MemesClientPlugin
+Frontend-Plugin: yes
+Frontend-deps: embed-images
+Frontend-libs: /static/memes.js
+Frontend-styles: /static/memes.css

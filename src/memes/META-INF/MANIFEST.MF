@@ -1,0 +1,3 @@
+
+Name: Instant-Plugin
+Main-Class: net.instant.plugin.memes.MemesPlugin

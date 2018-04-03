@@ -1,0 +1,41 @@
+
+/* Instant meme plugin stylesheet */
+
+.meme-creator {
+  border-spacing: 2px;
+}
+
+.meme-creator .wide-column {
+  width: 100%;
+}
+
+.meme-creator .no-wrap {
+  white-space: pre;
+}
+
+.meme-creator .enabler {
+  margin-right: 0.5ch;
+}
+
+.meme-creator input[type=text], .meme-creator select {
+  box-sizing: border-box;
+  width: 100%;
+  /* Override quite specific catch-all rule */
+  -webkit-transition: initial !important;
+  transition: initial !important;
+}
+
+.meme-preview {
+  text-align: center;
+}
+.meme-preview:not(:empty) {
+  margin-top: 5px;
+}
+.meme-preview a, img {
+  display: inline-block;
+  vertical-align: top;
+}
+.meme-preview img {
+  width: 100%;
+  max-width: 15em;
+}
