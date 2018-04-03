@@ -26,12 +26,11 @@ public class MemesClientPlugin {
         return sb.append("]").toString();
     }
 
-    public static Object initInstantPlugin1(API1 api, PluginData data) {
+    public static void initInstantPlugin1(API1 api, PluginData data) {
         api.handleDefault(data);
         MemeManager mgr = (MemeManager) api.getPluginData("memes");
         api.addSiteCode("Instant.plugins.mailbox(\"memes\").post(" +
             getFrontendData(mgr) + ");");
-        return mgr;
     }
 
 }
