@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.imageio.ImageIO;
-import net.instant.api.Utilities;
 
 public class MemeManager {
 
@@ -60,24 +59,6 @@ public class MemeManager {
     }
     public void setRenderer(MemeRenderer r) {
         renderer = r;
-    }
-
-    public String getFrontendData() {
-        StringBuilder sb = new StringBuilder("[");
-        boolean first = true;
-        for (MemeTemplate t : templates()) {
-            if (first) {
-                first = false;
-            } else {
-                sb.append(", ");
-            }
-            sb.append("[");
-            sb.append(Utilities.escapeStringJS(t.getName(), true));
-            sb.append(", ");
-            sb.append(Utilities.escapeStringJS(t.getDescription(), true));
-            sb.append("]");
-        }
-        return sb.append("]").toString();
     }
 
     public BufferedImage render(MemeComponent top, MemeComponent bottom) {

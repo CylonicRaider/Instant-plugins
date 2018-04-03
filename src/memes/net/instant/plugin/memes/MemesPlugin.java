@@ -41,8 +41,6 @@ public class MemesPlugin {
             return null;
         }
         api.addRequestHook(new MemeProducer(mgr, api.getExecutor()));
-        api.addSiteCode("Instant.plugins.mailbox(\"memes\").post(" +
-            mgr.getFrontendData() + ");");
         return mgr;
     }
 
