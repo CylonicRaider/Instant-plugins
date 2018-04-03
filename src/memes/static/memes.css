@@ -24,3 +24,13 @@
   -webkit-transition: initial !important;
   transition: initial !important;
 }
+
+.meme-preview:not(:empty) {
+  margin-top: 5px;
+}
+.meme-preview img {
+  display: block;
+  margin: auto;
+  width: 100%;
+  max-width: 15em;
+}

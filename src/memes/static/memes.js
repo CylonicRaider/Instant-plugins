@@ -12,19 +12,25 @@ void function() {
     function updateBottomImage() {
       bottomImage.disabled = ! enableBottomImage.checked;
     }
-    function makeMemeURL(embed) {
+    function makeMemeURL(mode) {
       var url = 'meme:instant/' + topImage.value;
       if (enableBottomImage.checked) url += '/' + bottomImage.value;
       url += '.jpg?top=' + encodeURIComponent(topText.value) +
         '&bottom=' + encodeURIComponent(bottomText.value);
-      return embed ? '<!' + url + '>' : url;
+      if (mode == 'real') {
+        return url.replace(/^meme:instant/, '/meme');
+      } else if (mode == 'embed') {
+        return '<!' + url + '>';
+      } else {
+        return url;
+      }
     }
     if (installed) return;
     installed = true;
     /* Install UI elements */
     var popup = Instant.popups.make({
       title: 'Meme generator',
-      content: $makeNode('table', 'meme-creator', [
+      content: $makeFrag(['table', 'meme-creator', [
         ['tr', [
           ['td'],
           ['td', ['Image: ']],
@@ -47,12 +53,32 @@ void function() {
           ['td', 'no-wrap', ['Bottom text: ']],
           ['td', [['input', 'bottom-text', {type: 'text'}]]]
         ]]
-      ]),
+      ]],
+      ['div', 'meme-preview']),
       buttons: [{
+        text: 'Preview',
+        onclick: function() {
+          var img = document.createElement('img');
+          img.addEventListener('load', function() {
+            while (previewContainer.firstChild)
+              previewContainer.removeChild(previewContainer.firstChild);
+            previewContainer.appendChild(img);
+          });
+          img.addEventListener('error', function() {
+            Instant.popups.addNewMessage(popup, {content: $makeFrag(
+              ['b', null, 'Error: '],
+              'Could not load image?!'
+            ), className: 'popup-message-error'});
+          });
+          img.src = makeMemeURL('real');
+        }
+      },
+      null,
+      {
         text: 'Post!',
         color: '#008000',
         onclick: function() {
-          Instant.input.insertText(makeMemeURL(true));
+          Instant.input.insertText(makeMemeURL('embed'));
           Instant.input.post();
           Instant.popups.del(popup);
         }
@@ -60,7 +86,7 @@ void function() {
         text: 'Write text',
         color: '#008000',
         onclick: function() {
-          Instant.input.insertText(makeMemeURL(true));
+          Instant.input.insertText(makeMemeURL('embed'));
           Instant.popups.del(popup);
         }
       }, {
@@ -84,6 +110,7 @@ void function() {
     var enableBottomImage = $sel('#enable-bottom-image', popup);
     enableBottomImage.addEventListener('click', updateBottomImage);
     updateBottomImage();
+    var previewContainer = $cls('meme-preview', popup);
     var uiMessage = Instant.sidebar.makeMessage({
       content: 'Make meme',
       className: 'special',
