@@ -99,14 +99,17 @@ public class MemeProducer implements RequestHook {
     }
 
     private final MemeManager manager;
-    private final Map<RequestData, MemeRequest> requests;
     private final Executor executor;
+    private final Map<RequestData, MemeRequest> requests;
 
-    public MemeProducer(MemeManager manager) {
+    public MemeProducer(MemeManager manager, Executor executor) {
         this.manager = manager;
+        this.executor = executor;
         this.requests = Collections.synchronizedMap(
             new WeakHashMap<RequestData, MemeRequest>());
-        this.executor = Executors.newCachedThreadPool();
+    }
+    public MemeProducer(MemeManager manager) {
+        this(manager, Executors.newCachedThreadPool());
     }
 
     public boolean evaluateRequest(RequestData req, ResponseBuilder resp) {

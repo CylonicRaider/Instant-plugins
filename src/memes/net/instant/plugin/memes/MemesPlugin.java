@@ -40,7 +40,7 @@ public class MemesPlugin {
             LOGGER.log(Level.SEVERE, "Could not load configuration", exc);
             return null;
         }
-        api.addRequestHook(new MemeProducer(mgr));
+        api.addRequestHook(new MemeProducer(mgr, api.getExecutor()));
         api.addSiteCode("Instant.plugins.mailbox(\"memes\").post(" +
             mgr.getFrontendData() + ");");
         return mgr;
