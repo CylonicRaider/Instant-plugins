@@ -20,6 +20,8 @@ public class MemeProducer implements FileGenerator {
     private static final Pattern PATH = Pattern.compile("/static/meme/" +
         "([a-zA-Z0-9_-]+)(?:/([a-zA-Z0-9_-]+))?(?:\\.(jpg|png))");
 
+    public static final int CACHE_TIME = 3600000;
+
     public static class MemeInfo implements FileInfo {
 
         private final String path;
@@ -45,7 +47,7 @@ public class MemeProducer implements FileGenerator {
         }
 
         public boolean isValid() {
-            return true;
+            return (System.currentTimeMillis() <= created + CACHE_TIME);
         }
 
     }
