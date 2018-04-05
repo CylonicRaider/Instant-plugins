@@ -39,3 +39,11 @@
   width: 100%;
   max-width: 15em;
 }
+
+.memes-special {
+  font-weight: bold;
+  color: transparent;
+  background: linear-gradient(to bottom right, #ff0000, #0080ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+}

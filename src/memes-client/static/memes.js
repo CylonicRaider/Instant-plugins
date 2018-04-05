@@ -134,7 +134,7 @@ void function() {
     }
     /* Add entry point */
     Instant.sidebar.extras.addNewButton({
-      text: 'Make meme',
+      text: $makeNode('span', 'memes-special', 'Make meme'),
       onclick: function() {
         Instant.sidebar.extras.hide();
         Instant.popups.add(popup);
