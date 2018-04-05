@@ -42,7 +42,7 @@ void function() {
       var keyA = a[1], keyB = b[1];
       return (keyA > keyB) - (keyA < keyB);
     });
-    /* Install UI elements */
+    /* Create popup */
     var popup = Instant.popups.make({
       title: 'Meme generator',
       content: $makeFrag(['table', 'meme-creator', [
@@ -116,27 +116,29 @@ void function() {
       }],
       focusSel: '.top-image'
     });
+    /* Set up variables for helper functions */
     var topImage = $cls('top-image', popup);
     var bottomImage = $cls('bottom-image', popup);
     var topText = $cls('top-text', popup);
     var bottomText = $cls('bottom-text', popup);
+    var enableBottomImage = $sel('#enable-bottom-image', popup);
+    enableBottomImage.addEventListener('click', updateBottomImage);
+    updateBottomImage();
+    var previewContainer = $cls('meme-preview', popup);
+    /* Add menu entries */
     for (var i = 0; i < data.length; i++) {
       var attrs = {value: data[i][0]};
       if (attrs.value == defaultItem) attrs.selected = 'selected';
       topImage.appendChild($makeNode('option', attrs, data[i][1]));
       bottomImage.appendChild($makeNode('option', attrs, data[i][1]));
     }
-    var enableBottomImage = $sel('#enable-bottom-image', popup);
-    enableBottomImage.addEventListener('click', updateBottomImage);
-    updateBottomImage();
-    var previewContainer = $cls('meme-preview', popup);
-    var uiMessage = Instant.sidebar.makeMessage({
-      content: 'Make meme',
-      className: 'special',
+    /* Add entry point */
+    Instant.sidebar.extras.addNewButton({
+      text: 'Make meme',
       onclick: function() {
+        Instant.sidebar.extras.hide();
         Instant.popups.add(popup);
       }
     });
-    Instant.sidebar.showMessage(uiMessage);
   });
 }();
