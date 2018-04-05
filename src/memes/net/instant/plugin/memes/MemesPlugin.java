@@ -5,6 +5,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import net.instant.api.API1;
 import net.instant.api.PluginData;
 import net.instant.api.Utilities;
@@ -17,7 +18,6 @@ public class MemesPlugin {
         MemesPlugin.class.getResource("/memes.conf");
 
     public static Object initInstantPlugin1(API1 api, PluginData data) {
-        api.handleDefault(data);
         String config = api.getConfiguration("memes.config");
         URL configURL = defaultConfigURL;
         if (Utilities.nonempty(config)) {
@@ -40,7 +40,8 @@ public class MemesPlugin {
             LOGGER.log(Level.SEVERE, "Could not load configuration", exc);
             return null;
         }
-        api.addRequestHook(new MemeProducer(mgr, api.getExecutor()));
+        api.addRedirect(Pattern.compile("/meme/.*"), "/static\\0", 301);
+        api.addFileGenerator(new MemeProducer(mgr));
         return mgr;
     }
 
