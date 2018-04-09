@@ -41,8 +41,9 @@
 }
 
 .memes-special {
-  color: transparent;
+  color: white;
   background: linear-gradient(to bottom right, #ff0000, #0080ff);
+  border-radius: 2px;
+  -webkit-text-fill-color: transparent;
   -webkit-background-clip: text;
-  background-clip: text;
 }
