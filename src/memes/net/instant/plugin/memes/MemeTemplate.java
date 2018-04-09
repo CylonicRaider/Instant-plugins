@@ -10,6 +10,8 @@ public class MemeTemplate {
 
     public MemeTemplate(String name, String description,
                         BufferedImage image) {
+        if (name == null || image == null)
+            throw new NullPointerException();
         this.name = name;
         this.description = description;
         this.image = image;

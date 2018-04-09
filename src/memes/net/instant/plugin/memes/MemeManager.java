@@ -25,7 +25,7 @@ public class MemeManager {
     private static final Pattern ASSIGN_LINE = Pattern.compile(
         "\\s*([^=]*[^=\\s])\\s*=\\s*(.*)\\s*");
     private static final Pattern MEME_LINE = Pattern.compile(
-        "\\s*([^|]*[^|\\s])\\s*\\|\\s*([^|]*[^|\\s])\\s*\\|" +
+        "\\s*([^|]*[^|\\s])\\s*\\|\\s*([^|]*[^|\\s])?\\s*\\|" +
         "\\s*([^|]*[^|\\s])\\s*");
 
     public static final int DEFAULT_FONT_SIZE = 24;
