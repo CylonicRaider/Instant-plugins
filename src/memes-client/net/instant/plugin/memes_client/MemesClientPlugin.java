@@ -12,6 +12,7 @@ public class MemesClientPlugin {
         StringBuilder sb = new StringBuilder("[");
         boolean first = true;
         for (MemeTemplate t : mgr.templates()) {
+            if (t.getDescription() == null) continue;
             if (first) {
                 first = false;
             } else {
