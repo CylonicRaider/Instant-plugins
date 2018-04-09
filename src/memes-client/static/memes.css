@@ -31,7 +31,7 @@
 .meme-preview:not(:empty) {
   margin-top: 5px;
 }
-.meme-preview a, img {
+.meme-preview a, .meme-preview img {
   display: inline-block;
   vertical-align: top;
 }
@@ -41,7 +41,6 @@
 }
 
 .memes-special {
-  font-weight: bold;
   color: transparent;
   background: linear-gradient(to bottom right, #ff0000, #0080ff);
   -webkit-background-clip: text;

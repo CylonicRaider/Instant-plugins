@@ -133,10 +133,9 @@ void function() {
       bottomImage.appendChild($makeNode('option', attrs, data[i][1]));
     }
     /* Add entry point */
-    Instant.sidebar.extras.addNewButton({
+    Instant.popups.menu.addNew({
       text: $makeNode('span', 'memes-special', 'Make meme'),
       onclick: function() {
-        Instant.sidebar.extras.hide();
         Instant.popups.add(popup);
       }
     });
