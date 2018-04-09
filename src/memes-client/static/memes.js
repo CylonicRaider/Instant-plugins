@@ -14,7 +14,7 @@ void function() {
   /* Install image handler */
   Instant.plugins.mailbox('embed-images').post([[
     '^meme:instant/([a-zA-Z0-9_-]+(/[a-zA-Z0-9_-]+)?\\.[a-z]+(\\?.*)?)$',
-    '/meme/$1'
+    '/static/meme/$1'
   ]]);
   var installed = false;
   Instant.plugins.mailbox('memes').handle(function(data) {
