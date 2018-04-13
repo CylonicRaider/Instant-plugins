@@ -97,6 +97,13 @@ void function() {
         text: 'Post!',
         color: '#008000',
         onclick: function() {
+          if (! topText.value || ! bottomText.value) {
+            Instant.popups.addNewMessage(popup, {
+              content: 'Please specify both top and bottom text.',
+              className: 'popup-message-warning'
+            });
+            return;
+          }
           Instant.input.insertText(makeMemeURL('embed'));
           Instant.input.post();
           Instant.popups.del(popup);
