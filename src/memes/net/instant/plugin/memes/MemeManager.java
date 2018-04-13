@@ -169,7 +169,11 @@ public class MemeManager {
     }
 
     private static BufferedImage loadImage(URL source) throws IOException {
-        return ImageIO.read(source);
+        BufferedImage ret = ImageIO.read(source);
+        if (ret == null)
+            throw new IOException("Could not load image (unknown " +
+                "format?): " + source);
+        return ret;
     }
 
 }
