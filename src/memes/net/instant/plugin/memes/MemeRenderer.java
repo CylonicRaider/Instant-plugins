@@ -55,11 +55,17 @@ public class MemeRenderer {
         return outlineFactor;
     }
 
-    public void ensureCompatible(MemeComponent component) {
-        if (component.getImage().getWidth() != background.getWidth() ||
-                component.getImage().getHeight() != background.getHeight())
-            throw new RuntimeException("Meme component does not match " +
+    private void ensureCompatible(BufferedImage img) {
+        if (img.getWidth() != background.getWidth() ||
+                img.getHeight() != background.getHeight())
+            throw new RuntimeException("Meme image does not match " +
                 "meme renderer");
+    }
+    public void ensureCompatible(MemeTemplate template) {
+        ensureCompatible(template.getImage());
+    }
+    public void ensureCompatible(MemeComponent component) {
+        ensureCompatible(component.getImage());
     }
 
     // TODO: Support more than two parts.

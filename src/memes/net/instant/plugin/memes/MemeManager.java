@@ -166,6 +166,9 @@ public class MemeManager {
             throw new ConfigException("No background image defined");
         renderer = new MemeRenderer(backgroundImage, rendererFont,
             wrappingCutoff, textColor, outlineColor, outlineFactor);
+        for (MemeTemplate t : templates()) {
+            renderer.ensureCompatible(t);
+        }
     }
 
     private static BufferedImage loadImage(URL source) throws IOException {
