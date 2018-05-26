@@ -11,14 +11,6 @@ void function() {
       img.classList.remove('loading');
       restore();
     }
-    function checkSize(img) {
-      if (! img.classList.contains('loading')) return;
-      if (img.naturalHeight != 0) {
-        finishLoading({target: img});
-      } else {
-        setTimeout(checkSize, 100, img);
-      }
-    }
     data.forEach(function(elem) {
       var re = new RegExp(elem[0]), srcSubs = elem[1], urlSubs = elem[2];
       if (urlSubs == null) urlSubs = srcSubs;
@@ -38,7 +30,6 @@ void function() {
           img.classList.add('loading');
           img.addEventListener('load', finishLoading);
           img.addEventListener('error', finishLoading);
-          checkSize(img);
         });
       });
     }
