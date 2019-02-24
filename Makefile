@@ -4,9 +4,9 @@ JAVACFLAGS = -Xlint:all -Xlint:-serial -Werror
 # HACK: Make's syntax is... simplicistic.
 SPACE := $(subst ,, )
 
-PLUGIN_NAMES = $(patsubst src/%,%,$(wildcard src/*))
-PLUGIN_ARCHIVES = $(patsubst %,out/%.jar,$(PLUGIN_NAMES))
-PLUGIN_CLASSPATH = $(subst $(SPACE),:,$(patsubst %,../%,$(PLUGIN_NAMES)))
+PLUGIN_NAMES := $(patsubst src/%,%,$(wildcard src/*))
+PLUGIN_ARCHIVES := $(patsubst %,out/%.jar,$(PLUGIN_NAMES))
+PLUGIN_CLASSPATH := $(subst $(SPACE),:,$(patsubst %,../%,$(PLUGIN_NAMES)))
 
 .PHONY: all clean
 
