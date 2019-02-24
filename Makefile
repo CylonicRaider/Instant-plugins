@@ -36,5 +36,5 @@ out/%.jar: build/%.jar $$(shell find src/$$* lib/$$* -type f 2>/dev/null) \
 	    './META-INF/MANIFEST.MF')
 	[ -d lib/$* ] && cd lib/$* && jar uf ../../out/$*.jar $$(find . \
 	    -type f -not -path './META-INF/MANIFEST.MF') || true
-	    cd src/$* && [ -f META-INF/MANIFEST.MF ] && \
-	jar ufm ../../out/$*.jar META-INF/MANIFEST.MF || true
+	cd src/$* && [ -f META-INF/MANIFEST.MF ] && \
+	    jar ufm ../../out/$*.jar META-INF/MANIFEST.MF || true
