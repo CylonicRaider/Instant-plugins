@@ -4,9 +4,9 @@ JAVACFLAGS = -Xlint:all -Xlint:-serial -Werror
 # HACK: Make's syntax is... simplicistic.
 SPACE := $(subst ,, )
 
-PLUGIN_NAMES = $(patsubst src/%,%,$(wildcard src/*))
-PLUGIN_ARCHIVES = $(patsubst %,out/%.jar,$(PLUGIN_NAMES))
-PLUGIN_CLASSPATH = $(subst $(SPACE),:,$(patsubst %,../%,$(PLUGIN_NAMES)))
+PLUGIN_NAMES := $(patsubst src/%,%,$(wildcard src/*))
+PLUGIN_ARCHIVES := $(patsubst %,out/%.jar,$(PLUGIN_NAMES))
+PLUGIN_CLASSPATH := $(subst $(SPACE),:,$(patsubst %,../%,$(PLUGIN_NAMES)))
 
 .PHONY: all clean
 
@@ -36,5 +36,5 @@ out/%.jar: build/%.jar $$(shell find src/$$* lib/$$* -type f 2>/dev/null) \
 	    './META-INF/MANIFEST.MF')
 	[ -d lib/$* ] && cd lib/$* && jar uf ../../out/$*.jar $$(find . \
 	    -type f -not -path './META-INF/MANIFEST.MF') || true
-	    cd src/$* && [ -f META-INF/MANIFEST.MF ] && \
-	jar ufm ../../out/$*.jar META-INF/MANIFEST.MF || true
+	cd src/$* && [ -f META-INF/MANIFEST.MF ] && \
+	    jar ufm ../../out/$*.jar META-INF/MANIFEST.MF || true
