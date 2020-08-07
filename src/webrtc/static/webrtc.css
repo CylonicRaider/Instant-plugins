@@ -1,2 +1,6 @@
 
 /* Instant video chat plugin stylesheet */
+
+.user-list .nick-box.highlight > .nick {
+  font-weight: bold;
+}
