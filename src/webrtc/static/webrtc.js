@@ -2,9 +2,25 @@
 /* Instant video chat plugin functionality */
 
 Instant.webrtc = function() {
+  /* The user identity. Stays stable while the page is loaded. */
+  var identity = null;
+  /* Counter for connection ID-s. */
+  var idCounter = 1;
   /* The current configuration. */
   var configuration = {};
   return {
+    /* Initialize submodule. */
+    init: function() {
+      Instant.listen('identity.established', function(event) {
+        if (identity == null) identity = Instant.identity.id;
+      });
+    },
+    /* Retrieve this client's P2P identity.
+     * The identity is set when we first connect to the Instant API, and stays
+     * stable until the page is reloaded. */
+    getIdentity: function() {
+      return identity;
+    },
     /* Retrieve the current RTCPeerConnection configuration object. */
     getRTCConfiguration: function() {
       return configuration;
