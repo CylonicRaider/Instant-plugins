@@ -25,10 +25,6 @@ Instant.webrtc = function() {
     getRTCConfiguration: function() {
       return configuration;
     },
-    /* Set the configuration object used for creating RTCPeerConnection-s. */
-    setRTCConfiguration: function(config) {
-      configuration = config;
-    },
     /* Create a media stream object capturing audio and/or video from the
      * user.
      * The return value is a Promise, which may resolve, reject, or do
