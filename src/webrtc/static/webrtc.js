@@ -15,6 +15,12 @@ Instant.webrtc = function() {
         if (identity == null) identity = Instant.identity.id;
       });
     },
+    /* Return whether the module is ready for use.
+     * Until this returns true, no functions (but init() and isReady()) should
+     * be called. */
+    isReady: function() {
+      return (identity != null);
+    },
     /* Retrieve this client's P2P identity.
      * The identity is set when we first connect to the Instant API, and stays
      * stable until the page is reloaded. */
