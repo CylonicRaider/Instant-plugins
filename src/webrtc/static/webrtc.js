@@ -37,10 +37,19 @@ Instant.webrtc = function() {
     },
     /* Create a WebRTC connection to the given peer and return it. */
     connectTo: function(peerID) {
-      var connID = Instant.webrtc._getConnectionID(peerID);
+      var connID = Instant.webrtc._calcConnectionID(peerID);
       if (! connections[connID])
         Instant.webrtc._createConnection(connID, peerID);
       return connections[connID];
+    },
+    /* Retrieve the connection with the given ID, or null if there is none. */
+    getConnection: function(connID) {
+      return connections[connID] || null;
+    },
+    /* Retrieve the ID of the given RTCPeerConnection.
+     * The object must have been created by connectTo(). */
+    getConnectionID: function(conn) {
+      return conn._instant.id;
     },
     /* Create a media stream object capturing audio and/or video from the
      * user.
@@ -70,7 +79,7 @@ Instant.webrtc = function() {
     },
     /* Calculate the unique ID of any connection between this peer and the
      * one named by peerID. */
-    _getConnectionID: function(peerID) {
+    _calcConnectionID: function(peerID) {
       if (peerID < identity) {
         return peerID + ':' + identity;
       } else {
