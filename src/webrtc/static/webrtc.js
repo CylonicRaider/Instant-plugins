@@ -91,6 +91,7 @@ Instant.webrtc = function() {
      * ID is given as well. */
     _createConnection: function(connID, peerID) {
       var ret = new RTCPeerConnection(configuration);
+      var peerFlag = connID.startsWith(identity + ':');
       ret._instant = {id: connID, onSignalingInput: null};
       Instant.webrtc._negotiate(ret, function(handler) {
           ret._instant.onSignalingInput = handler;
@@ -111,9 +112,7 @@ Instant.webrtc = function() {
      * signalTo      is a function that takes singaling datum and relays it
      *               the counterpart.
      * peerFlag      is a Boolean that should be true on one peer and false on
-     *               the other. For example, the peer initiating the
-     *               connection could set this to true; then, the other peer
-     *               would set this to false. */
+     *               the other. */
     _negotiate: function(conn, setSignalFrom, signalTo, peerFlag) {
       // Perfect (WebRTC) negotiation pattern as described on MDN. The code
       // behaves "politely" iff peerFlag is true.
