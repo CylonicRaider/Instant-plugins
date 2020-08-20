@@ -4,19 +4,29 @@
 Instant.webrtc = function() {
   /* The user identity. Stays stable while the page is loaded. */
   var identity = null;
-  /* The current configuration. */
+  /* Mapping from peer ID-s to whether we can communicate with them. */
+  var validPeers = {};
+  /* The current WebRTC configuration. */
   var configuration = {};
   /* Connection storage. */
   var connections = {};
   return {
     /* Initialize submodule. */
     init: function() {
-      Instant.connection.addHandler('p2p-signal', function(msg) {
+      function handleMessage(msg) {
         Instant.webrtc._onmessage(msg);
         return true;
-      });
+      }
+      Instant.connection.addHandler('p2p-query', handleMessage);
+      Instant.connection.addHandler('p2p-announce', handleMessage);
+      Instant.connection.addHandler('p2p-signal', handleMessage);
       Instant.listen('identity.established', function(event) {
         if (identity == null) identity = Instant.identity.id;
+        Instant.webrtc._sendAnnounce(null);
+        Instant.connection.sendBroadcast({type: 'p2p-query'});
+      });
+      Instant.listen('connection.close', function(event) {
+        validPeers = {};
       });
     },
     /* Return whether the module is ready for use.
@@ -97,7 +107,7 @@ Instant.webrtc = function() {
           ret._instant.onSignalingInput = handler;
         }, function(data) {
           Instant.connection.sendUnicast(peerID, {type: 'p2p-signal',
-            connection: connID, data: data});
+            provider: 'webrtc', connection: connID, data: data});
         }, peerFlag);
       connections[connID] = ret;
       return ret;
@@ -165,14 +175,36 @@ Instant.webrtc = function() {
         });
       });
     },
+    /* Send an announcement of our P2P support to the given receiver
+     * (defaulting to everyone). */
+    _sendAnnounce: function(receiver) {
+      Instant.connection.send(receiver, {type: 'p2p-announce',
+                                         providers: ['webrtc']});
+    },
     /* Handle an incoming (Instant client-to-client) message. */
     _onmessage: function(msg) {
       var data = msg.data;
       switch (data.type) {
-        case 'p2p-signal':
+        case 'p2p-query': /* Someone is asking whether we support WebRTC. */
+          Instant.webrtc._sendAnnounce(msg.from);
+          break;
+        case 'p2p-announce': /* Someone is telling us they support WebRTC. */
+          // Ignore announcements from ourself -- the negotiation algorithm
+          // breaks when both peers are the same.
+          if (msg.from == identity) break;
+          var providers = data.providers || [];
+          if (providers.indexOf('webrtc') != -1) validPeers[msg.from] = true;
+          break;
+        case 'p2p-signal': /* Someone is trying to connect to us. */
+          if (data.provider != 'webrtc') {
+            console.warn('WebRTC: Invalid signaling message received (wrong '
+                         'provider):', msg);
+            break;
+          }
           var connID = data.connection;
           if (! connID) {
-            console.warn('WebRTC: Invalid signaling message received:', msg);
+            console.warn('WebRTC: Invalid signaling message received (no '
+                         'connection ID):', msg);
             break;
           }
           // Reception of a signaling event creates a new connection if
