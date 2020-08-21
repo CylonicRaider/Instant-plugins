@@ -45,8 +45,12 @@ Instant.webrtc = function() {
     getRTCConfiguration: function() {
       return configuration;
     },
-    /* Create a WebRTC connection to the given peer and return it. */
-    connectTo: function(peerID) {
+    /* Create a WebRTC connection to the given peer and return it.
+     * If the peer has not announced its WebRTC support and force is not true,
+     * an error is thrown instead. */
+    connectTo: function(peerID, force) {
+      if (! (force || validPeers[peerID]))
+        throw new Error('Invalid peer ' + peerID);
       var connID = Instant.webrtc._calcConnectionID(peerID);
       if (! connections[connID])
         Instant.webrtc._createConnection(connID, peerID);
