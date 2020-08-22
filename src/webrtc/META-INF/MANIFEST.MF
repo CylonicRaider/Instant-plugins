@@ -3,3 +3,4 @@ Name: Instant-Plugin
 Frontend-Plugin: yes
 Frontend-libs: /static/webrtc.js
 Frontend-styles: /static/webrtc.css
+Frontend-main: return Instant.webrtc.init()
