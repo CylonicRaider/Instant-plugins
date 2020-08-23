@@ -183,7 +183,7 @@ Instant.webrtc = function() {
      * (defaulting to everyone). */
     _sendAnnounce: function(receiver) {
       Instant.connection.send(receiver, {type: 'p2p-announce',
-                                         providers: ['webrtc']});
+        identity: identity, providers: ['webrtc']});
     },
     /* Handle an incoming (Instant client-to-client) message. */
     _onmessage: function(msg) {
