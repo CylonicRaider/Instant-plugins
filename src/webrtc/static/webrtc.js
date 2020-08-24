@@ -200,11 +200,18 @@ Instant.webrtc = function() {
           // Ignore announcements from ourself -- the negotiation algorithm
           // breaks when both peers are the same.
           if (msg.from == identity) break;
+          // Validate the offered provider(s).
           var providers = data.providers || [];
-          if (providers.indexOf('webrtc') != -1) {
-            peers[msg.from] = data.identity;
-            peerSessions[data.identity] = msg.from;
-          }
+          if (providers.indexOf('webrtc') == -1) break;
+          // Sanity-check its identity.
+          var peerIdent = data.identity;
+          if (typeof peerIdent != 'string') break;
+          var peerUUID = Instant.logs.getUUID(msg.from);
+          if (! peerUUID) break;
+          if (! peerIdent.startsWith(peerUUID + ':')) break;
+          // Finally, register the peer.
+          peers[msg.from] = peerIdent;
+          peerSessions[peerIdent] = msg.from;
           break;
         case 'p2p-signal': /* Someone is trying to connect to us. */
           if (data.provider != 'webrtc') {
