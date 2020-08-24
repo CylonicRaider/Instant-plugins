@@ -4,8 +4,8 @@
 Instant.webrtc = function() {
   /* The user identity. Stays stable while the page is loaded. */
   var identity = null;
-  /* Mapping from peer ID-s to whether we can communicate with them. */
-  var validPeers = {};
+  /* Mappings between P2P peer ID-s and Instant session ID-s. */
+  var peers = {}, peerSessions = {};
   /* The current WebRTC configuration. */
   var configuration = {};
   /* Connection storage. */
@@ -21,12 +21,15 @@ Instant.webrtc = function() {
       Instant.connection.addHandler('p2p-announce', handleMessage);
       Instant.connection.addHandler('p2p-signal', handleMessage);
       Instant.listen('identity.established', function(event) {
-        if (identity == null) identity = Instant.identity.id;
+        if (identity == null) {
+          identity = Instant.identity.uuid + ':' + Instant.identity.id;
+        }
         Instant.webrtc._sendAnnounce(null);
         Instant.connection.sendBroadcast({type: 'p2p-query'});
       });
       Instant.listen('connection.close', function(event) {
-        validPeers = {};
+        peers = {};
+        peerSessions = {};
       });
     },
     /* Return whether the module is ready for use.
@@ -49,7 +52,7 @@ Instant.webrtc = function() {
      * If the peer has not announced its WebRTC support and force is not true,
      * an error is thrown instead. */
     connectTo: function(peerID, force) {
-      if (! (force || validPeers[peerID]))
+      if (! (force || peerSessions[peerID]))
         throw new Error('Invalid peer ' + peerID);
       var connID = Instant.webrtc._calcConnectionID(peerID);
       if (! connections[connID])
@@ -95,14 +98,14 @@ Instant.webrtc = function() {
      * one named by peerID. */
     _calcConnectionID: function(peerID) {
       if (peerID < identity) {
-        return peerID + ':' + identity;
+        return peerID + '/' + identity;
       } else {
-        return identity + ':' + peerID;
+        return identity + '/' + peerID;
       }
     },
     /* Create, install, and return a fully configured RTCPeerConnection.
      * The connection has the given ID and communicates with the peer whose
-     * ID is given as well. */
+     * identity is given as well. */
     _createConnection: function(connID, peerID) {
       var ret = new RTCPeerConnection(configuration);
       var peerFlag = connID.startsWith(identity + ':');
@@ -110,8 +113,9 @@ Instant.webrtc = function() {
       Instant.webrtc._negotiate(ret, function(handler) {
           ret._instant.onSignalingInput = handler;
         }, function(data) {
-          Instant.connection.sendUnicast(peerID, {type: 'p2p-signal',
-            provider: 'webrtc', connection: connID, data: data});
+          Instant.connection.sendUnicast(peerSessions[peerID],
+            {type: 'p2p-signal', provider: 'webrtc', connection: connID,
+             data: data});
         }, peerFlag);
       connections[connID] = ret;
       return ret;
@@ -197,7 +201,10 @@ Instant.webrtc = function() {
           // breaks when both peers are the same.
           if (msg.from == identity) break;
           var providers = data.providers || [];
-          if (providers.indexOf('webrtc') != -1) validPeers[msg.from] = true;
+          if (providers.indexOf('webrtc') != -1) {
+            peers[msg.from] = data.identity;
+            peerSessions[data.identity] = msg.from;
+          }
           break;
         case 'p2p-signal': /* Someone is trying to connect to us. */
           if (data.provider != 'webrtc') {
