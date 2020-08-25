@@ -10,6 +10,8 @@ Instant.webrtc = function() {
   var configuration = {};
   /* Connection storage. */
   var connections = {};
+  /* Buffered singaling data. Non-null when there is no connection. */
+  var signalBuffer = null;
   return {
     /* Initialize submodule. */
     init: function() {
@@ -26,10 +28,13 @@ Instant.webrtc = function() {
         }
         Instant.webrtc._sendAnnounce(null);
         Instant.connection.sendBroadcast({type: 'p2p-query'});
+        Instant.webrtc._flushSignalBuffer(signalBuffer);
+        signalBuffer = null;
       });
       Instant.listen('connection.close', function(event) {
         peers = {};
         peerSessions = {};
+        signalBuffer = {};
       });
     },
     /* Return whether the module is ready for use.
@@ -113,9 +118,18 @@ Instant.webrtc = function() {
       Instant.webrtc._negotiate(ret, function(handler) {
           ret._instant.onSignalingInput = handler;
         }, function(data) {
-          Instant.connection.sendUnicast(peerSessions[peerID],
-            {type: 'p2p-signal', provider: 'webrtc', connection: connID,
-             data: data});
+          var receiver = peerSessions[peerID];
+          var msg = {type: 'p2p-signal', provider: 'webrtc',
+                     connection: connID, data: data};
+          if (signalBuffer) {
+            if (! signalBuffer[receiver]) {
+              signalBuffer[receiver] = [msg];
+            } else {
+              signalBuffer[receiver].push(msg);
+            }
+          } else {
+            Instant.connection.sendUnicast(receiver, msg);
+          }
         }, peerFlag);
       connections[connID] = ret;
       return ret;
@@ -188,6 +202,16 @@ Instant.webrtc = function() {
     _sendAnnounce: function(receiver) {
       Instant.connection.send(receiver, {type: 'p2p-announce',
         identity: identity, providers: ['webrtc']});
+    },
+    /* Internal: Actually submit buffered singaling information. */
+    _flushSignalBuffer: function(buffer) {
+      for (var peerSID in buffer) {
+        if (! buffer.hasOwnProperty(peerSID)) continue;
+        var messages = buffer[peerSID];
+        for (var i = 0; i < messages.length; i++) {
+          Instant.connection.sendUnicast(peerSID, messages[i]);
+        }
+      }
     },
     /* Handle an incoming (Instant client-to-client) message. */
     _onmessage: function(msg) {
