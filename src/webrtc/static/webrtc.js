@@ -10,9 +10,15 @@ Instant.webrtc = function() {
   var configuration = {};
   /* Connection storage. */
   var connections = {};
+  /* Mapping from connection ID-s to GC deadlines. */
+  var gcDeadlines = {};
   /* Buffered singaling data. Non-null when there is no connection. */
   var signalBuffer = null;
   return {
+    /* Time after which an errored-out connection should be discarded. */
+    GC_TIMEOUT: 60000,
+    /* How often the GC should run. */
+    GC_GRANULARITY: 'm',
     /* Initialize submodule. */
     init: function() {
       function handleMessage(msg) {
@@ -28,14 +34,13 @@ Instant.webrtc = function() {
         }
         Instant.webrtc._sendAnnounce(null);
         Instant.connection.sendBroadcast({type: 'p2p-query'});
-        Instant.webrtc._flushSignalBuffer(signalBuffer);
-        signalBuffer = null;
+        Instant.webrtc._flushSignalBuffer();
       });
       Instant.listen('connection.close', function(event) {
-        peers = {};
-        peerSessions = {};
         signalBuffer = {};
       });
+      Instant.timers.add(Instant.webrtc._doGC.bind(Instant.webrtc),
+                         Instant.webrtc.GC_GRANULARITY);
     },
     /* Return whether the module is ready for use.
      * Until this returns true, no functions (but init() and isReady()) should
@@ -118,21 +123,40 @@ Instant.webrtc = function() {
       Instant.webrtc._negotiate(ret, function(handler) {
           ret._instant.onSignalingInput = handler;
         }, function(data) {
-          var receiver = peerSessions[peerID];
-          var msg = {type: 'p2p-signal', provider: 'webrtc',
-                     connection: connID, data: data};
-          if (signalBuffer) {
-            if (! signalBuffer[receiver]) {
-              signalBuffer[receiver] = [msg];
-            } else {
-              signalBuffer[receiver].push(msg);
-            }
-          } else {
-            Instant.connection.sendUnicast(receiver, msg);
-          }
+          Instant.webrtc._sendSignal(peerID, {type: 'p2p-signal',
+            provider: 'webrtc', connection: connID, data: data});
         }, peerFlag);
       connections[connID] = ret;
       return ret;
+    },
+    /* Remove the connection with the given ID. */
+    _removeConnection: function(connID) {
+      var conn = connections[connID];
+      if (conn) conn.close();
+      delete connections[connID];
+      delete gcDeadlines[connID];
+    },
+    /* Configure the given connection to be garbage-collected in the future
+     * (if remove is true), or not (otherwise). */
+    _setConnGC: function(connID, remove) {
+      if (! connections[connID]) {
+        /* NOP */
+      } else if (remove) {
+        gcDeadlines[connID] = Date.now() + Instant.webrtc.GC_TIMEOUT;
+      } else {
+        delete gcDeadlines[connID];
+      }
+    },
+    /* Perform a single run of the connection GC. */
+    _doGC: function() {
+      var now = Date.now();
+      for (var connID in gcDeadlines) {
+        if (! gcDeadlines.hasOwnProperty(connID)) continue;
+        var deadline = gcDeadlines[connID];
+        if (deadline <= now) continue;
+        Instant.webrtc._removeConnection(connID);
+      }
+      return Instant.webrtc.GC_GRANULARITY;
     },
     /* Configure the given RTCPeerConnection to negotiate with a counterpart
      * calling this function as well.
@@ -203,13 +227,45 @@ Instant.webrtc = function() {
       Instant.connection.send(receiver, {type: 'p2p-announce',
         identity: identity, providers: ['webrtc']});
     },
+    /* Send an (already-wrapped) signaling message to the peer with the given
+     * identity. */
+    _sendSignal: function(receiver, msg) {
+      function callback(msg) {
+        if (msg.type != 'error') return;
+        if (receiverSID) {
+          delete peers[receiverSID];
+          if (peerSessions[receiver] == receiverSID) {
+            delete peerSessions[receiver];
+          }
+        }
+        Instant.webrtc._setConnGC(msg.connection, true);
+      }
+      // If there is no Instant connection, we buffer signaling messages.
+      if (signalBuffer) {
+        if (! signalBuffer[receiver]) {
+          signalBuffer[receiver] = [msg];
+        } else {
+          signalBuffer[receiver].push(msg);
+        }
+        return;
+      }
+      // Otherwise, we submit them.
+      var receiverSID = peerSessions[receiver];
+      if (receiverSID) {
+        Instant.connection.sendUnicast(receiverSID, msg, callback);
+      } else {
+        callback({type: 'error'});
+      }
+    },
     /* Internal: Actually submit buffered singaling information. */
-    _flushSignalBuffer: function(buffer) {
-      for (var peerSID in buffer) {
-        if (! buffer.hasOwnProperty(peerSID)) continue;
-        var messages = buffer[peerSID];
+    _flushSignalBuffer: function() {
+      var buffered = signalBuffer;
+      signalBuffer = null;
+      for (var peerIdent in buffered) {
+        if (! buffered.hasOwnProperty(peerIdent)) continue;
+        var messages = buffered[peerIdent];
         for (var i = 0; i < messages.length; i++) {
-          Instant.connection.sendUnicast(peerSID, messages[i]);
+          Instant.webrtc._sendSignal(peerIdent, messages[i]);
         }
       }
     },
@@ -250,10 +306,11 @@ Instant.webrtc = function() {
             break;
           }
           // Reception of a signaling event creates a new connection if
-          // necessary.
+          // necessary, and definitely clears the GC flag.
           if (! connections[connID])
             Instant.webrtc._createConnection(connID, msg.from);
           connections[connID]._instant.onSignalingInput(data.data);
+          Instant.webrtc._setConnGC(connID, false);
           break;
         default:
           console.warn('WebRTC: Unknown client message?!', data);
