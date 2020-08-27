@@ -25,6 +25,13 @@ Instant.webrtc = function() {
         Instant.webrtc._onmessage(msg);
         return true;
       }
+      function cleanUpPeers(who) {
+        for (var sid in peers) {
+          if (! peers.hasOwnProperty(sid)) continue;
+          if (who.hasOwnProperty(sid)) continue;
+          Instant.webrtc._deletePeer(peers[sid], sid);
+        }
+      }
       Instant.connection.addHandler('p2p-query', handleMessage);
       Instant.connection.addHandler('p2p-announce', handleMessage);
       Instant.connection.addHandler('p2p-signal', handleMessage);
@@ -32,6 +39,9 @@ Instant.webrtc = function() {
         if (identity == null) {
           identity = Instant.identity.uuid + ':' + Instant.identity.id;
         }
+        Instant.connection.sendSeq({type: 'who'}, function(msg) {
+          cleanUpPeers(msg.data);
+        });
         Instant.webrtc._sendAnnounce(null);
         Instant.connection.sendBroadcast({type: 'p2p-query'});
         Instant.webrtc._flushSignalBuffer();
@@ -158,6 +168,21 @@ Instant.webrtc = function() {
       }
       return Instant.webrtc.GC_GRANULARITY;
     },
+    /* Register the peer with the given identity and (Instant) session ID. */
+    _addPeer: function(ident, sid) {
+      peers[sid] = ident;
+      peerSessions[ident] = sid;
+    },
+    /* Remove the peer with the given identity and the given session ID.
+     * If the peer already exists but has a different session ID, it is left
+     * in place (but the mapping from the session ID passed to this function
+     * is removed). */
+    _removePeer: function(ident, sid) {
+      if (! sid) return;
+      delete peers[sid];
+      if (peerSessions[ident] != sid) return;
+      delete peerSessions[ident];
+    },
     /* Configure the given RTCPeerConnection to negotiate with a counterpart
      * calling this function as well.
      * setSignalFrom is a setter function that takes an event handler function
@@ -232,12 +257,7 @@ Instant.webrtc = function() {
     _sendSignal: function(receiver, msg) {
       function callback(msg) {
         if (msg.type != 'error') return;
-        if (receiverSID) {
-          delete peers[receiverSID];
-          if (peerSessions[receiver] == receiverSID) {
-            delete peerSessions[receiver];
-          }
-        }
+        Instant.webrtc._removePeer(receiver, receiverSID);
         Instant.webrtc._setConnGC(msg.connection, true);
       }
       // If there is no Instant connection, we buffer signaling messages.
@@ -290,8 +310,7 @@ Instant.webrtc = function() {
           if (! peerUUID) break;
           if (! peerIdent.startsWith(peerUUID + ':')) break;
           // Finally, register the peer.
-          peers[msg.from] = peerIdent;
-          peerSessions[peerIdent] = msg.from;
+          Instant.webrtc._addPeer(peerIdent, msg.from);
           break;
         case 'p2p-signal': /* Someone is trying to connect to us. */
           if (data.provider != 'webrtc') {
