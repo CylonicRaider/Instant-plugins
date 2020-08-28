@@ -129,7 +129,8 @@ Instant.webrtc = function() {
     _createConnection: function(connID, peerID) {
       var ret = new RTCPeerConnection(configuration);
       var peerFlag = connID.startsWith(identity + ':');
-      ret._instant = {id: connID, onSignalingInput: null};
+      ret._instant = {id: connID, onSignalingInput: null,
+                      controlChannel: null};
       Instant.webrtc._negotiate(ret, function(handler) {
           ret._instant.onSignalingInput = handler;
         }, function(data) {
@@ -137,6 +138,8 @@ Instant.webrtc = function() {
             provider: 'webrtc', connection: connID, data: data});
         }, peerFlag);
       connections[connID] = ret;
+      ret._instant.controlChannel = ret.createDataChannel('control',
+        {negotiated: true, id: 0});
       return ret;
     },
     /* Remove the connection with the given ID. */
