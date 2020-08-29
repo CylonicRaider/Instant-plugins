@@ -140,6 +140,9 @@ Instant.webrtc = function() {
       connections[connID] = ret;
       ret._instant.controlChannel = ret.createDataChannel('control',
         {negotiated: true, id: 0});
+      ret._instant.controlChannel.addEventListener('close', function(evt) {
+        Instant.webrtc._removeConnection(connID);
+      });
       return ret;
     },
     /* Remove the connection with the given ID. */
