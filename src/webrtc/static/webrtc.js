@@ -14,6 +14,8 @@ Instant.webrtc = function() {
   var gcDeadlines = {};
   /* Buffered singaling data. Non-null when there is no connection. */
   var signalBuffer = null;
+  /* Mapping from type strings to lists of control message listeners. */
+  var controlListeners = {};
   return {
     /* Time after which an errored-out connection should be discarded. */
     GC_TIMEOUT: 60000,
@@ -68,6 +70,22 @@ Instant.webrtc = function() {
     getRTCConfiguration: function() {
       return configuration;
     },
+    /* Add a listener for control messages. */
+    addControlListener: function(type, listener) {
+      if (! controlListeners[type]) {
+        controlListeners[type] = [listener];
+      } else if (controlListenery[type].indexOf(listener) == -1) {
+        controlListeners[type].push(listener);
+      }
+    },
+    /* Remove a control message listener. */
+    removeControlListener: function(type, listener) {
+      var list = controlListeners[type];
+      if (! list) return;
+      var idx = list.indexOf(listener);
+      if (idx == -1) return;
+      list.splice(idx, 1);
+    },
     /* Create a WebRTC connection to the given peer and return it.
      * If the peer has not announced its WebRTC support and force is not true,
      * an error is thrown instead. */
@@ -87,6 +105,16 @@ Instant.webrtc = function() {
      * The object must have been created by connectTo(). */
     getConnectionID: function(conn) {
       return conn._instant.id;
+    },
+    /* Send an arbitrarily formatted control message to the given
+     * connection. */
+    sendRawControlMessage: function(conn, msg) {
+      conn._instant.controlChannel.send(JSON.stringify(msg));
+    },
+    /* Send a control message with the given type and data to the given
+     * connection. */
+    sendControlMessage: function(conn, type, data) {
+      Instant.webrtc.sendRawControlMessage(conn, {type: type, data: data});
     },
     /* Create a media stream object capturing audio and/or video from the
      * user.
@@ -140,6 +168,31 @@ Instant.webrtc = function() {
       connections[connID] = ret;
       ret._instant.controlChannel = ret.createDataChannel('control',
         {negotiated: true, id: 0});
+      ret._instant.controlChannel.addEventListener('message', function(evt) {
+        var data;
+        try {
+          data = JSON.parse(evt.data);
+          if (typeof data != 'object') throw 'Not an object';
+        } catch (e) {
+          console.warn('WebRTC: Cannot parse control message:', e);
+          return;
+        }
+        var type = data.type;
+        if (! type) {
+          console.warn('WebRTC: Invalid control message (missing type):',
+                       data);
+          return;
+        }
+        var listeners = controlListeners[type];
+        if (! listeners) return;
+        for (var i = 0; i < listeners.length; i++) {
+          try {
+            listeners[i].call(this, data, connID);
+          } catch (e) {
+            console.error('WebRTC: Error in callback:', e);
+          }
+        }
+      });
       ret._instant.controlChannel.addEventListener('close', function(evt) {
         Instant.webrtc._removeConnection(connID);
       });
