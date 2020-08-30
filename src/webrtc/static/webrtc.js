@@ -373,13 +373,13 @@ Instant.webrtc = function() {
           break;
         case 'p2p-signal': /* Someone is trying to connect to us. */
           if (data.provider != 'webrtc') {
-            console.warn('WebRTC: Invalid signaling message received (wrong '
-                         'provider):', msg);
+            console.warn('WebRTC: Invalid signaling message received ' +
+                         '(wrong provider):', msg);
             break;
           }
           var connID = data.connection;
           if (! connID) {
-            console.warn('WebRTC: Invalid signaling message received (no '
+            console.warn('WebRTC: Invalid signaling message received (no ' +
                          'connection ID):', msg);
             break;
           }
