@@ -361,7 +361,11 @@ Instant.webrtc = function() {
           if (msg.from == identity) break;
           // Validate the offered provider(s).
           var providers = data.providers || [];
-          if (providers.indexOf('webrtc') == -1) break;
+          if (providers.indexOf('webrtc') == -1) {
+            // Allow de-announcing support.
+            Instant.webrtc._removePeer(peers[msg.from], msg.from);
+            break;
+          }
           // Sanity-check its identity.
           var peerIdent = data.identity;
           if (typeof peerIdent != 'string') break;
