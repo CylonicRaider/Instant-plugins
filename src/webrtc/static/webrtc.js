@@ -47,6 +47,7 @@ Instant.webrtc = function() {
         Instant.webrtc._sendAnnounce(null);
         Instant.connection.sendBroadcast({type: 'p2p-query'});
         Instant.webrtc._flushSignalBuffer();
+        Instant._fireListeners('webrtc.init');
       });
       Instant.listen('connection.close', function(event) {
         signalBuffer = {};
@@ -196,12 +197,16 @@ Instant.webrtc = function() {
       ret._instant.controlChannel.addEventListener('close', function(evt) {
         Instant.webrtc._removeConnection(connID);
       });
+      Instant._fireListeners('webrtc.conn.new', {connection: ret});
       return ret;
     },
     /* Remove the connection with the given ID. */
     _removeConnection: function(connID) {
       var conn = connections[connID];
-      if (conn) conn.close();
+      if (conn) {
+        Instant._fireListeners('webrtc.conn.close', {connection: conn});
+        conn.close();
+      }
       delete connections[connID];
       delete gcDeadlines[connID];
     },
@@ -229,18 +234,26 @@ Instant.webrtc = function() {
     },
     /* Register the peer with the given identity and (Instant) session ID. */
     _addPeer: function(ident, sid) {
+      var oldSID = peerSessions[ident];
+      if (oldSID) delete peers[oldSID];
       peers[sid] = ident;
       peerSessions[ident] = sid;
+      Instant._fireListeners('webrtc.peer.new', {identity: ident,
+                                                 session: sid});
     },
     /* Remove the peer with the given identity and the given session ID.
      * If the peer already exists but has a different session ID, it is left
      * in place (but the mapping from the session ID passed to this function
      * is removed). */
     _removePeer: function(ident, sid) {
-      if (! sid) return;
-      delete peers[sid];
-      if (peerSessions[ident] != sid) return;
-      delete peerSessions[ident];
+      if (sid) {
+        delete peers[sid];
+      }
+      if (ident && peerSessions[ident] == sid) {
+        delete peerSessions[ident];
+        Instant._fireListeners('webrtc.peer.remove', {identity: ident,
+                                                      session: sid});
+      }
     },
     /* Configure the given RTCPeerConnection to negotiate with a counterpart
      * calling this function as well.
@@ -308,8 +321,11 @@ Instant.webrtc = function() {
     /* Send an announcement of our P2P support to the given receiver
      * (defaulting to everyone). */
     _sendAnnounce: function(receiver) {
-      Instant.connection.send(receiver, {type: 'p2p-announce',
-        identity: identity, providers: ['webrtc']});
+      var announce = {type: 'p2p-announce', identity: identity,
+                      providers: ['webrtc']};
+      Instant._fireListeners('webrtc.announce', {message: announce,
+                                                 to: receiver});
+      Instant.connection.send(receiver, announce);
     },
     /* Send an (already-wrapped) signaling message to the peer with the given
      * identity. */
