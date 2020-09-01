@@ -73,6 +73,16 @@ Instant.webrtc = function() {
     getRTCConfiguration: function() {
       return configuration;
     },
+    /* Retrieve the P2P identity of the peer with the given session ID, if
+     * any. */
+    getPeerIdentity: function(sid) {
+      return peers[sid];
+    },
+    /* Retrieve the current Instant session ID of the peer with the given P2P
+     * identity, if any. */
+    getPeerSID: function(ident) {
+      return peerSessions[ident];
+    },
     /* Add a listener for control messages. */
     addControlListener: function(type, listener) {
       if (! controlListeners[type]) {
@@ -108,6 +118,10 @@ Instant.webrtc = function() {
      * The object must have been created by connectTo(). */
     getConnectionID: function(conn) {
       return conn._instant.id;
+    },
+    /* Retrieve the ID of the peer the given connection is to. */
+    getConnectionPeerID: function(conn) {
+      return conn._instant.peer;
     },
     /* Send an arbitrarily formatted control message to the given
      * connection. */
@@ -160,7 +174,7 @@ Instant.webrtc = function() {
     _createConnection: function(connID, peerID) {
       var ret = new RTCPeerConnection(configuration);
       var peerFlag = connID.startsWith(identity + ':');
-      ret._instant = {id: connID, onSignalingInput: null,
+      ret._instant = {id: connID, peer: peerID, onSignalingInput: null,
                       controlChannel: null};
       Instant.webrtc._negotiate(ret, function(handler) {
           ret._instant.onSignalingInput = handler;
