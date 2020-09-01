@@ -204,7 +204,7 @@ Instant.webrtc = function() {
         if (! listeners) return;
         for (var i = 0; i < listeners.length; i++) {
           try {
-            listeners[i].call(this, data, connID);
+            listeners[i].call(this, data, ret);
           } catch (e) {
             console.error('WebRTC: Error in callback:', e);
           }
