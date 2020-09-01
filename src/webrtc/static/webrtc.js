@@ -23,6 +23,18 @@ Instant.webrtc = function() {
     GC_GRANULARITY: 'm',
     /* Initialize submodule. */
     init: function() {
+      function handleIdentity() {
+        if (identity == null) {
+          identity = Instant.identity.uuid + ':' + Instant.identity.id;
+        }
+        Instant.connection.sendSeq({type: 'who'}, function(msg) {
+          cleanUpPeers(msg.data);
+        });
+        Instant.webrtc._sendAnnounce(null);
+        Instant.connection.sendBroadcast({type: 'p2p-query'});
+        Instant.webrtc._flushSignalBuffer();
+        Instant._fireListeners('webrtc.init');
+      }
       function handleMessage(msg) {
         Instant.webrtc._onmessage(msg);
         return true;
@@ -37,23 +49,13 @@ Instant.webrtc = function() {
       Instant.connection.addHandler('p2p-query', handleMessage);
       Instant.connection.addHandler('p2p-announce', handleMessage);
       Instant.connection.addHandler('p2p-signal', handleMessage);
-      Instant.listen('identity.established', function(event) {
-        if (identity == null) {
-          identity = Instant.identity.uuid + ':' + Instant.identity.id;
-        }
-        Instant.connection.sendSeq({type: 'who'}, function(msg) {
-          cleanUpPeers(msg.data);
-        });
-        Instant.webrtc._sendAnnounce(null);
-        Instant.connection.sendBroadcast({type: 'p2p-query'});
-        Instant.webrtc._flushSignalBuffer();
-        Instant._fireListeners('webrtc.init');
-      });
+      Instant.listen('identity.established', handleIdentity);
       Instant.listen('connection.close', function(event) {
         signalBuffer = {};
       });
       Instant.timers.add(Instant.webrtc._doGC.bind(Instant.webrtc),
                          Instant.webrtc.GC_GRANULARITY);
+      if (Instant.identity.id != null) handleIdentity();
     },
     /* Return whether the module is ready for use.
      * Until this returns true, no functions (but init() and isReady()) should
@@ -369,12 +371,14 @@ Instant.webrtc = function() {
       var data = msg.data;
       switch (data.type) {
         case 'p2p-query': /* Someone is asking whether we support WebRTC. */
+          // Do not send announcements if we are not ready yet.
+          if (identity == null) break;
           Instant.webrtc._sendAnnounce(msg.from);
           break;
         case 'p2p-announce': /* Someone is telling us they support WebRTC. */
           // Ignore announcements from ourself -- the negotiation algorithm
           // breaks when both peers are the same.
-          if (msg.from == identity) break;
+          if (msg.from == Instant.identity.id) break;
           // Validate the offered provider(s).
           var providers = data.providers || [];
           if (providers.indexOf('webrtc') == -1) {
