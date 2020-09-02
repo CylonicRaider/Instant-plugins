@@ -323,7 +323,7 @@ Instant.webrtc = function() {
           offerIgnored = (collision && ! peerFlag);
           if (offerIgnored) return;
           // Accepted descriptions are passed on; offers are answered.
-          promise = pc.setRemoteDescription(description).then(function() {
+          promise = conn.setRemoteDescription(description).then(function() {
             if (description.type != 'offer') return;
             return conn.setLocalDescription().then(function() {
               signalTo({type: 'description', data: conn.localDescription});
@@ -331,7 +331,7 @@ Instant.webrtc = function() {
           });
         } else if (data.type == 'candidate') {
           // Candidates are fed back into WebRTC.
-          promise = pc.addIceCandidate(data.data);
+          promise = conn.addIceCandidate(data.data);
         } else {
           return;
         }
