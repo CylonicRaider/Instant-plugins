@@ -114,6 +114,11 @@ Instant.webrtc = function() {
     getConnection: function(connID) {
       return connections[connID] || null;
     },
+    /* Retrieve the connection with the given peer, if any. */
+    getConnectionWith: function(peerID) {
+      var connID = Instant.webrtc._calcConnectionID(peerID);
+      return connections[connID] || null;
+    },
     /* Retrieve the ID of the given RTCPeerConnection.
      * The object must have been created by connectTo(). */
     getConnectionID: function(conn) {
@@ -122,6 +127,10 @@ Instant.webrtc = function() {
     /* Retrieve the ID of the peer the given connection is to. */
     getConnectionPeerID: function(conn) {
       return conn._instant.peer;
+    },
+    /* Retrieve this connection's RTCDataChannel for control messages. */
+    getConnectionControlChannel: function(conn) {
+      return conn._instant.controlChannel;
     },
     /* Send an arbitrarily formatted control message to the given
      * connection. */
