@@ -142,6 +142,10 @@ Instant.webrtc = function() {
     sendControlMessage: function(conn, type, data) {
       Instant.webrtc.sendRawControlMessage(conn, {type: type, data: data});
     },
+    /* Close the given connection. */
+    closeConnection: function(conn) {
+      Instant.webrtc._removeConnection(conn._instant.id);
+    },
     /* Create a media stream object capturing audio and/or video from the
      * user.
      * The return value is a Promise, which may resolve, reject, or do
@@ -443,7 +447,8 @@ Instant.webrtc = function() {
       }
     },
     /* Add or remove highlighting on this user list entry. */
-    _setHighlight: function(userNode, newState) {
+    _setHighlight: function(sid, newState) {
+      var userNode = Instant.userList.get(sid);
       if (newState) {
         userNode.classList.add('highlight');
       } else {
