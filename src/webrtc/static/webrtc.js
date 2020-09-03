@@ -296,6 +296,24 @@ Instant.webrtc = function() {
      * peerFlag      is a Boolean that should be true on one peer and false on
      *               the other. */
     _negotiate: function(conn, setSignalFrom, signalTo, peerFlag) {
+      function autoSetLocalDescription(conn) {
+        return conn.setLocalDescription().catch(function(err) {
+          console.warn('WebRTC: Error while auto-creating local ' +
+            'description; re-trying manually...', err);
+          // Old browsers do not have argument-less setLocalDescription().
+          var promise;
+          if (conn.signalingState == 'stable' ||
+              conn.signalingState == 'have-local-offer' ||
+              conn.signalingState == 'have-remote-pranswer') {
+            promise = conn.createOffer();
+          } else {
+            promise = conn.createAnswer();
+          }
+          return promise.then(function(desc) {
+            return conn.setLocalDescription(desc);
+          });
+        });
+      }
       // Perfect (WebRTC) negotiation pattern as described on MDN. The code
       // behaves "politely" iff peerFlag is true.
       sendingOffer = false;
@@ -304,7 +322,7 @@ Instant.webrtc = function() {
         // Whenever (re)negotiation is required, we update the local
         // description and send it off.
         sendingOffer = true;
-        conn.setLocalDescription().then(function() {
+        autoSetLocalDescription(conn).then(function() {
           signalTo({type: 'description', data: conn.localDescription});
         }).catch(function(err) {
           console.error('WebRTC: Error while submitting local description:',
@@ -314,6 +332,7 @@ Instant.webrtc = function() {
         });
       });
       conn.addEventListener('icecandidate', function(event) {
+        if (! event.candidate) return;
         // Candidates are forwarded to the other side.
         signalTo({type: 'candidate', data: event.candidate});
       });
@@ -329,7 +348,7 @@ Instant.webrtc = function() {
           // Accepted descriptions are passed on; offers are answered.
           promise = conn.setRemoteDescription(description).then(function() {
             if (description.type != 'offer') return;
-            return conn.setLocalDescription().then(function() {
+            return autoSetLocalDescription(conn).then(function() {
               signalTo({type: 'description', data: conn.localDescription});
             });
           });
