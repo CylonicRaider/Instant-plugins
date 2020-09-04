@@ -316,8 +316,8 @@ Instant.webrtc = function() {
       }
       // Perfect (WebRTC) negotiation pattern as described on MDN. The code
       // behaves "politely" iff peerFlag is true.
-      sendingOffer = false;
-      offerIgnored = false;
+      var sendingOffer = false;
+      var offerIgnored = false;
       conn.addEventListener('negotiationneeded', function(event) {
         // Whenever (re)negotiation is required, we update the local
         // description and send it off.
