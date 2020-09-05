@@ -2,6 +2,12 @@
 /* Instant video chat plugin functionality */
 
 Instant.webrtc = function() {
+  /* For debugging. */
+  function trace(msg) {
+    if (window.logInstantWebRTC)
+      console.debug.apply(console, ['[WebRTC]'].concat(
+        Array.prototype.slice.call(arguments)));
+  }
   /* The user identity. Stays stable while the page is loaded. */
   var identity = null;
   /* Mappings between P2P peer ID-s and Instant session ID-s. */
@@ -46,6 +52,7 @@ Instant.webrtc = function() {
           Instant.webrtc._deletePeer(peers[sid], sid);
         }
       }
+      Instant.query.initVerboseFlag(window, 'logInstantWebRTC', 'webrtc');
       Instant.connection.addHandler('p2p-query', handleMessage);
       Instant.connection.addHandler('p2p-announce', handleMessage);
       Instant.connection.addHandler('p2p-signal', handleMessage);
@@ -187,11 +194,15 @@ Instant.webrtc = function() {
     _createConnection: function(connID, peerID) {
       var ret = new RTCPeerConnection(configuration);
       var peerFlag = connID.startsWith(identity + ':');
-      ret._instant = {id: connID, peer: peerID, onSignalingInput: null,
-                      controlChannel: null};
+      // Tag for debugging.
+      var tag = '->' + (peerSessions[peerID] ||
+                        peerID.replace(/^[0-9a-fA-F-]+:/, "")) + ':';
+      ret._instant = {id: connID, peer: peerID, tag: tag,
+                      onSignalingInput: null, controlChannel: null};
       Instant.webrtc._negotiate(ret, function(handler) {
           ret._instant.onSignalingInput = handler;
         }, function(data) {
+          trace(tag, 'Signaling out:', data);
           Instant.webrtc._sendSignal(peerID, {type: 'p2p-signal',
             provider: 'webrtc', connection: connID, data: data});
         }, peerFlag);
@@ -314,11 +325,20 @@ Instant.webrtc = function() {
           });
         });
       }
+      function addStateTracker(conn, propName) {
+        conn.addEventListener(propName.toLowerCase() + 'change',
+          function(evt) {
+            trace(connTag, propName, 'changed to', conn[propName]);
+          });
+      }
+      // Connection ID for debugging.
+      var connTag = (conn._instant) ? conn._instant.tag : '<anonymous>:';
       // Perfect (WebRTC) negotiation pattern as described on MDN. The code
       // behaves "politely" iff peerFlag is true.
       var sendingOffer = false;
       var offerIgnored = false;
       conn.addEventListener('negotiationneeded', function(event) {
+        trace(connTag, 'Negotiating...');
         // Whenever (re)negotiation is required, we update the local
         // description and send it off.
         sendingOffer = true;
@@ -365,6 +385,10 @@ Instant.webrtc = function() {
                         ':', err);
         });
       });
+      // More debugging.
+      addStateTracker(conn, 'connectionState');
+      addStateTracker(conn, 'iceConnectionState');
+      addStateTracker(conn, 'signalingState');
     },
     /* Send an announcement of our P2P support to the given receiver
      * (defaulting to everyone). */
@@ -457,7 +481,9 @@ Instant.webrtc = function() {
           // necessary, and definitely clears the GC flag.
           if (! connections[connID])
             Instant.webrtc._createConnection(connID, msg.from);
-          connections[connID]._instant.onSignalingInput(data.data);
+          var conn = connections[connID];
+          trace(conn._instant.tag, 'Signaling in:', data.data);
+          conn._instant.onSignalingInput(data.data);
           Instant.webrtc._setConnGC(connID, false);
           break;
         default:
