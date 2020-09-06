@@ -109,12 +109,12 @@ Instant.webrtc = function() {
     /* Create a WebRTC connection to the given peer and return it.
      * If the peer has not announced its WebRTC support and force is not true,
      * an error is thrown instead. */
-    connectTo: function(peerID, force) {
-      if (! (force || peerSessions[peerID]))
-        throw new Error('Invalid peer ' + peerID);
-      var connID = Instant.webrtc._calcConnectionID(peerID);
+    connectTo: function(peerIdent, force) {
+      if (! (force || peerSessions[peerIdent]))
+        throw new Error('Invalid peer ' + peerIdent);
+      var connID = Instant.webrtc._calcConnectionID(peerIdent);
       if (! connections[connID])
-        Instant.webrtc._createConnection(connID, peerID);
+        Instant.webrtc._createConnection(connID, peerIdent);
       return connections[connID];
     },
     /* Retrieve the connection with the given ID, or null if there is none. */
@@ -122,8 +122,8 @@ Instant.webrtc = function() {
       return connections[connID] || null;
     },
     /* Retrieve the connection with the given peer, if any. */
-    getConnectionWith: function(peerID) {
-      var connID = Instant.webrtc._calcConnectionID(peerID);
+    getConnectionWith: function(peerIdent) {
+      var connID = Instant.webrtc._calcConnectionID(peerIdent);
       return connections[connID] || null;
     },
     /* Retrieve the ID of the given RTCPeerConnection.
@@ -180,30 +180,30 @@ Instant.webrtc = function() {
       return ret;
     },
     /* Calculate the unique ID of any connection between this peer and the
-     * one named by peerID. */
-    _calcConnectionID: function(peerID) {
-      if (peerID < identity) {
-        return peerID + '/' + identity;
+     * one named by peerIdent. */
+    _calcConnectionID: function(peerIdent) {
+      if (peerIdent < identity) {
+        return peerIdent + '/' + identity;
       } else {
-        return identity + '/' + peerID;
+        return identity + '/' + peerIdent;
       }
     },
     /* Create, install, and return a fully configured RTCPeerConnection.
      * The connection has the given ID and communicates with the peer whose
      * identity is given as well. */
-    _createConnection: function(connID, peerID) {
+    _createConnection: function(connID, peerIdent) {
       var ret = new RTCPeerConnection(configuration);
       var peerFlag = connID.startsWith(identity + ':');
       // Tag for debugging.
-      var tag = '->' + (peerSessions[peerID] ||
-                        peerID.replace(/^[0-9a-fA-F-]+:/, "")) + ':';
-      ret._instant = {id: connID, peer: peerID, tag: tag,
+      var tag = '->' + (peerSessions[peerIdent] ||
+                        peerIdent.replace(/^[0-9a-fA-F-]+:/, "")) + ':';
+      ret._instant = {id: connID, peer: peerIdent, tag: tag,
                       onSignalingInput: null, controlChannel: null};
       Instant.webrtc._negotiate(ret, function(handler) {
           ret._instant.onSignalingInput = handler;
         }, function(data) {
           trace(tag, 'Signaling out:', data);
-          Instant.webrtc._sendSignal(peerID, {type: 'p2p-signal',
+          Instant.webrtc._sendSignal(peerIdent, {type: 'p2p-signal',
             provider: 'webrtc', connection: connID, data: data});
         }, peerFlag);
       connections[connID] = ret;
@@ -479,8 +479,15 @@ Instant.webrtc = function() {
           }
           // Reception of a signaling event creates a new connection if
           // necessary, and definitely clears the GC flag.
-          if (! connections[connID])
-            Instant.webrtc._createConnection(connID, msg.from);
+          if (! connections[connID]) {
+            var peerIdent = peers[msg.from];
+            if (! peerIdent) {
+              console.warn('WebRTC: Invalid signaling message received ' +
+                '(unknown peer identity):', msg);
+              break;
+            }
+            Instant.webrtc._createConnection(connID, peerIdent);
+          }
           var conn = connections[connID];
           trace(conn._instant.tag, 'Signaling in:', data.data);
           conn._instant.onSignalingInput(data.data);
