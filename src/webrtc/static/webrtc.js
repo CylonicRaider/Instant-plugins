@@ -193,7 +193,8 @@ Instant.webrtc = function() {
      * identity is given as well. */
     _createConnection: function(connID, peerIdent) {
       var ret = new RTCPeerConnection(configuration);
-      var peerFlag = connID.startsWith(identity + ':');
+      // Peer flag for asymmetric behavior.
+      var peerFlag = connID.startsWith(identity + '/');
       // Tag for debugging.
       var tag = '->' + (peerSessions[peerIdent] ||
                         peerIdent.replace(/^[0-9a-fA-F-]+:/, "")) + ':';
