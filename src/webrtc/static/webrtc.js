@@ -208,9 +208,13 @@ Instant.webrtc = function() {
             provider: 'webrtc', connection: connID, data: data});
         }, peerFlag);
       connections[connID] = ret;
-      ret._instant.controlChannel = ret.createDataChannel('control',
+      var controlChannel = ret.createDataChannel('control',
         {negotiated: true, id: 0});
-      ret._instant.controlChannel.addEventListener('message', function(evt) {
+      ret._instant.controlChannel = controlChannel;
+      controlChannel.addEventListener('open', function(evt) {
+        trace(tag, 'Control channel open');
+      });
+      controlChannel.addEventListener('message', function(evt) {
         var data;
         try {
           data = JSON.parse(evt.data);
@@ -235,8 +239,12 @@ Instant.webrtc = function() {
           }
         }
       });
-      ret._instant.controlChannel.addEventListener('close', function(evt) {
+      controlChannel.addEventListener('close', function(evt) {
+        trace(tag, 'Control channel closed');
         Instant.webrtc._removeConnection(connID);
+      });
+      controlChannel.addEventListener('error', function(evt) {
+        console.warn('WebRTC: Control channel error:', evt);
       });
       Instant._fireListeners('webrtc.conn.new', {connection: ret});
       return ret;
