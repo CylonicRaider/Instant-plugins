@@ -215,29 +215,7 @@ Instant.webrtc = function() {
         trace(tag, 'Control channel open');
       });
       controlChannel.addEventListener('message', function(evt) {
-        var data;
-        try {
-          data = JSON.parse(evt.data);
-          if (typeof data != 'object') throw 'Not an object';
-        } catch (e) {
-          console.warn('WebRTC: Cannot parse control message:', e);
-          return;
-        }
-        var type = data.type;
-        if (! type) {
-          console.warn('WebRTC: Invalid control message (missing type):',
-                       data);
-          return;
-        }
-        var listeners = controlListeners[type];
-        if (! listeners) return;
-        for (var i = 0; i < listeners.length; i++) {
-          try {
-            listeners[i].call(this, data, ret);
-          } catch (e) {
-            console.error('WebRTC: Error in callback:', e);
-          }
-        }
+        Instant.webrtc._onControlMessage(evt.data, ret);
       });
       controlChannel.addEventListener('close', function(evt) {
         trace(tag, 'Control channel closed');
@@ -506,6 +484,24 @@ Instant.webrtc = function() {
           console.warn('WebRTC: Unknown client message?!', data);
           break;
       }
+    },
+    /* Handle an incoming control channel message */
+    _onControlMessage: function(rawMsg, conn) {
+      var data;
+      try {
+        data = JSON.parse(rawMsg);
+        if (typeof data != 'object') throw 'Not an object';
+      } catch (e) {
+        console.warn('WebRTC: Cannot parse control message:', e);
+        return;
+      }
+      var type = data.type;
+      if (! type) {
+        console.warn('WebRTC: Invalid control message (missing type):',
+                     data);
+        return;
+      }
+      Instant.util.runList.call(conn, controlListeners[type], data, conn);
     },
     /* Add or remove highlighting on this user list entry. */
     _setHighlight: function(sid, newState) {
