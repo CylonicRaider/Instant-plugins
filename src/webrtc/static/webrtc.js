@@ -53,10 +53,12 @@ Instant.webrtc = function() {
         }
       }
       Instant.query.initVerboseFlag(window, 'logInstantWebRTC', 'webrtc');
+      Instant.connection.addRawHandler('identity', function() {
+        return handleIdentity;
+      });
       Instant.connection.addHandler('p2p-query', handleMessage);
       Instant.connection.addHandler('p2p-announce', handleMessage);
       Instant.connection.addHandler('p2p-signal', handleMessage);
-      Instant.listen('identity.established', handleIdentity);
       Instant.listen('connection.close', function(event) {
         signalBuffer = {};
       });
