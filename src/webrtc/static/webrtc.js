@@ -8,6 +8,91 @@ Instant.webrtc = function() {
       console.debug.apply(console, ['[WebRTC]'].concat(
         Array.prototype.slice.call(arguments)));
   }
+  /* An object enclosing an RTCPeerConnection connection, along with its
+   * control channel and assorted metadata. */
+  function Connection(id, peer) {
+    this.connection = null;
+    this.control = null;
+    this.id = id;
+    this.peer = peer;
+    this.tag = '->' + (peerSessions[this.peer] ||
+                       this.peer.replace(/^[0-9a-fA-F-]+:/, "")) + ':';
+    this._init();
+  }
+  Connection.prototype = {
+    /* Actually create the underlying RTCPeerConnection and the control
+     * channel. */
+    _init: function() {
+      var self = this;
+      this.connection = new RTCPeerConnection(configuration);
+      this.connection._instant = this;
+      Instant.webrtc._negotiate(this.connection, function(handler) {
+          self._onSignalingInput = handler;
+        }, function(data) {
+          trace(self.tag, 'Signaling out:', data);
+          Instant.webrtc._sendSignal(self.peer, {type: 'p2p-signal',
+            provider: 'webrtc', connection: self.id, data: data});
+        }, this.id.startsWith(identity + '/'));
+      this.control = this.connection.createDataChannel('control',
+        {negotiated: true, id: 0});
+      this.control.addEventListener('open', function(evt) {
+        trace(self.tag, 'Control channel open');
+      });
+      this.control.addEventListener('message', function(evt) {
+        self._onControlMessage(evt.data);
+      });
+      this.control.addEventListener('close', function(evt) {
+        trace(self.tag, 'Control channel closed');
+        self.close();
+      });
+      this.control.addEventListener('error', function(evt) {
+        console.warn('WebRTC: Control channel error:', evt);
+      });
+    },
+    /* Counterpart of _init(). */
+    _close: function() {
+      if (this.control != null) this.control.close();
+      if (this.connection != null) this.connection.close();
+      this.control = null;
+      this.connection = null;
+    },
+    /* Send an arbitrarily structured control message.
+     * The message is JSON-stringified before actually being sent. */
+    sendRawControlMessage: function(msg) {
+      this.control.send(JSON.stringify(msg));
+    },
+    /* Send a control message with the given type and data. */
+    sendControlMessage: function(type, data) {
+      this.sendRawControlMessage({type: type, data: data});
+    },
+    /* Close the connection. */
+    close: function() {
+      Instant.webrtc._removeConnection(this.id);
+      this._close();
+    },
+    /* Handle signaling input.
+     * Overridden by a per-instance closure in _init(). */
+    _onSignalingInput: function(data) {
+      throw new Error('Sending signaling data to uninitialized Connection?!');
+    },
+    /* Handle a message arriving on the control channel. */
+    _onControlMessage: function(text) {
+      var msg;
+      try {
+        msg = JSON.parse(text);
+        if (typeof msg != 'object') throw 'Not an object';
+      } catch (e) {
+        console.warn('WebRTC: Cannot parse control message:', e);
+        return;
+      }
+      var type = msg.type;
+      if (! type) {
+        console.warn('WebRTC: Invalid control message (missing type):', msg);
+        return;
+      }
+      Instant.webrtc._onControlMessage(msg, this);
+    }
+  };
   /* The user identity. Stays stable while the page is loaded. */
   var identity = null;
   /* Mappings between P2P peer ID-s and Instant session ID-s. */
@@ -18,10 +103,12 @@ Instant.webrtc = function() {
   var connections = {};
   /* Mapping from connection ID-s to GC deadlines. */
   var gcDeadlines = {};
-  /* Buffered singaling data. Non-null when there is no connection. */
+  /* Buffered singaling data. Non-null when there is no (Instant)
+   * connection. */
   var signalBuffer = null;
-  /* Mapping from type strings to lists of control message listeners. */
-  var controlListeners = {};
+  /* Mapping from type strings to lists of (global) control message
+   * listeners. */
+  var globalControlListeners = {};
   return {
     /* Time after which an errored-out connection should be discarded. */
     GC_TIMEOUT: 60000,
@@ -92,17 +179,17 @@ Instant.webrtc = function() {
     getPeerSID: function(ident) {
       return peerSessions[ident];
     },
-    /* Add a listener for control messages. */
-    addControlListener: function(type, listener) {
-      if (! controlListeners[type]) {
-        controlListeners[type] = [listener];
+    /* Add a global listener for control messages. */
+    addGlobalControlListener: function(type, listener) {
+      if (! globalControlListeners[type]) {
+        globalControlListeners[type] = [listener];
       } else if (controlListenery[type].indexOf(listener) == -1) {
-        controlListeners[type].push(listener);
+        globalControlListeners[type].push(listener);
       }
     },
-    /* Remove a control message listener. */
-    removeControlListener: function(type, listener) {
-      var list = controlListeners[type];
+    /* Remove a global control message listener. */
+    removeGlobalControlListener: function(type, listener) {
+      var list = globalControlListeners[type];
       if (! list) return;
       var idx = list.indexOf(listener);
       if (idx == -1) return;
@@ -127,33 +214,6 @@ Instant.webrtc = function() {
     getConnectionWith: function(peerIdent) {
       var connID = Instant.webrtc._calcConnectionID(peerIdent);
       return connections[connID] || null;
-    },
-    /* Retrieve the ID of the given RTCPeerConnection.
-     * The object must have been created by connectTo(). */
-    getConnectionID: function(conn) {
-      return conn._instant.id;
-    },
-    /* Retrieve the ID of the peer the given connection is to. */
-    getConnectionPeerID: function(conn) {
-      return conn._instant.peer;
-    },
-    /* Retrieve this connection's RTCDataChannel for control messages. */
-    getConnectionControlChannel: function(conn) {
-      return conn._instant.controlChannel;
-    },
-    /* Send an arbitrarily formatted control message to the given
-     * connection. */
-    sendRawControlMessage: function(conn, msg) {
-      conn._instant.controlChannel.send(JSON.stringify(msg));
-    },
-    /* Send a control message with the given type and data to the given
-     * connection. */
-    sendControlMessage: function(conn, type, data) {
-      Instant.webrtc.sendRawControlMessage(conn, {type: type, data: data});
-    },
-    /* Close the given connection. */
-    closeConnection: function(conn) {
-      Instant.webrtc._removeConnection(conn._instant.id);
     },
     /* Create a media stream object capturing audio and/or video from the
      * user.
@@ -194,47 +254,16 @@ Instant.webrtc = function() {
      * The connection has the given ID and communicates with the peer whose
      * identity is given as well. */
     _createConnection: function(connID, peerIdent) {
-      var ret = new RTCPeerConnection(configuration);
-      // Peer flag for asymmetric behavior.
-      var peerFlag = connID.startsWith(identity + '/');
-      // Tag for debugging.
-      var tag = '->' + (peerSessions[peerIdent] ||
-                        peerIdent.replace(/^[0-9a-fA-F-]+:/, "")) + ':';
-      ret._instant = {id: connID, peer: peerIdent, tag: tag,
-                      onSignalingInput: null, controlChannel: null};
-      Instant.webrtc._negotiate(ret, function(handler) {
-          ret._instant.onSignalingInput = handler;
-        }, function(data) {
-          trace(tag, 'Signaling out:', data);
-          Instant.webrtc._sendSignal(peerIdent, {type: 'p2p-signal',
-            provider: 'webrtc', connection: connID, data: data});
-        }, peerFlag);
-      connections[connID] = ret;
-      var controlChannel = ret.createDataChannel('control',
-        {negotiated: true, id: 0});
-      ret._instant.controlChannel = controlChannel;
-      controlChannel.addEventListener('open', function(evt) {
-        trace(tag, 'Control channel open');
-      });
-      controlChannel.addEventListener('message', function(evt) {
-        Instant.webrtc._onControlMessage(evt.data, ret);
-      });
-      controlChannel.addEventListener('close', function(evt) {
-        trace(tag, 'Control channel closed');
-        Instant.webrtc._removeConnection(connID);
-      });
-      controlChannel.addEventListener('error', function(evt) {
-        console.warn('WebRTC: Control channel error:', evt);
-      });
-      Instant._fireListeners('webrtc.conn.new', {connection: ret});
-      return ret;
+      var conn = new Connection(connID, peerIdent);
+      connections[connID] = conn;
+      Instant._fireListeners('webrtc.conn.open', {connection: conn});
     },
     /* Remove the connection with the given ID. */
     _removeConnection: function(connID) {
       var conn = connections[connID];
       if (conn) {
         Instant._fireListeners('webrtc.conn.close', {connection: conn});
-        conn.close();
+        conn._close();
       }
       delete connections[connID];
       delete gcDeadlines[connID];
@@ -365,6 +394,7 @@ Instant.webrtc = function() {
           // Candidates are fed back into WebRTC.
           promise = conn.addIceCandidate(data.data);
         } else {
+          console.warn('WebRTC: Unrecognized signaling data:', data);
           return;
         }
         // Common error handler.
@@ -390,23 +420,24 @@ Instant.webrtc = function() {
     },
     /* Send an (already-wrapped) signaling message to the peer with the given
      * identity. */
-    _sendSignal: function(receiver, msg) {
+    _sendSignal: function(peerIdent, msg) {
       function callback(msg) {
         if (msg.type != 'error') return;
-        Instant.webrtc._removePeer(receiver, receiverSID);
-        Instant.webrtc._setConnGC(msg.connection, true);
+        Instant.webrtc._removePeer(peerIdent, receiverSID);
+        var connID = Instant.webrtc._calcConnectionID(peerIdent);
+        Instant.webrtc._setConnGC(connID, true);
       }
       // If there is no Instant connection, we buffer signaling messages.
       if (signalBuffer) {
-        if (! signalBuffer[receiver]) {
-          signalBuffer[receiver] = [msg];
+        if (! signalBuffer[peerIdent]) {
+          signalBuffer[peerIdent] = [msg];
         } else {
-          signalBuffer[receiver].push(msg);
+          signalBuffer[peerIdent].push(msg);
         }
         return;
       }
       // Otherwise, we submit them.
-      var receiverSID = peerSessions[receiver];
+      var receiverSID = peerSessions[peerIdent];
       if (receiverSID) {
         Instant.connection.sendUnicast(receiverSID, msg, callback);
       } else {
@@ -478,8 +509,8 @@ Instant.webrtc = function() {
             Instant.webrtc._createConnection(connID, peerIdent);
           }
           var conn = connections[connID];
-          trace(conn._instant.tag, 'Signaling in:', data.data);
-          conn._instant.onSignalingInput(data.data);
+          trace(conn.tag, 'Signaling in:', data.data);
+          conn._onSignalingInput(data.data);
           Instant.webrtc._setConnGC(connID, false);
           break;
         default:
@@ -488,22 +519,9 @@ Instant.webrtc = function() {
       }
     },
     /* Handle an incoming control channel message */
-    _onControlMessage: function(rawMsg, conn) {
-      var data;
-      try {
-        data = JSON.parse(rawMsg);
-        if (typeof data != 'object') throw 'Not an object';
-      } catch (e) {
-        console.warn('WebRTC: Cannot parse control message:', e);
-        return;
-      }
-      var type = data.type;
-      if (! type) {
-        console.warn('WebRTC: Invalid control message (missing type):',
-                     data);
-        return;
-      }
-      Instant.util.runList.call(conn, controlListeners[type], data, conn);
+    _onControlMessage: function(msg, conn) {
+      Instant.util.runList.call(conn, globalControlListeners[msg.type],
+                                msg, conn);
     },
     /* Add or remove highlighting on this user list entry. */
     _setHighlight: function(sid, newState) {
