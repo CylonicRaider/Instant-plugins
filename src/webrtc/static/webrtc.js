@@ -106,9 +106,8 @@ Instant.webrtc = function() {
   /* Buffered singaling data. Non-null when there is no (Instant)
    * connection. */
   var signalBuffer = null;
-  /* Mapping from type strings to lists of (global) control message
-   * listeners. */
-  var globalControlListeners = {};
+  /* Global control message listeners. */
+  var globalControlListeners = new Instant.util.EventDispatcher();
   return {
     /* Time after which an errored-out connection should be discarded. */
     GC_TIMEOUT: 60000,
@@ -181,19 +180,11 @@ Instant.webrtc = function() {
     },
     /* Add a global listener for control messages. */
     addGlobalControlListener: function(type, listener) {
-      if (! globalControlListeners[type]) {
-        globalControlListeners[type] = [listener];
-      } else if (controlListenery[type].indexOf(listener) == -1) {
-        globalControlListeners[type].push(listener);
-      }
+      globalControlListeners.listen(type, listener);
     },
     /* Remove a global control message listener. */
     removeGlobalControlListener: function(type, listener) {
-      var list = globalControlListeners[type];
-      if (! list) return;
-      var idx = list.indexOf(listener);
-      if (idx == -1) return;
-      list.splice(idx, 1);
+      globalControlListeners.unlisten(type, listener);
     },
     /* Create a WebRTC connection to the given peer and return it.
      * If the peer has not announced its WebRTC support and force is not true,
@@ -520,8 +511,7 @@ Instant.webrtc = function() {
     },
     /* Handle an incoming control channel message */
     _onControlMessage: function(msg, conn) {
-      Instant.util.runList.call(conn, globalControlListeners[msg.type],
-                                msg, conn);
+      globalControlListeners.fire(msg.type, conn, msg, conn);
     },
     /* Add or remove highlighting on this user list entry. */
     _setHighlight: function(sid, newState) {
