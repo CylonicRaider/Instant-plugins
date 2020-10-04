@@ -17,6 +17,7 @@ Instant.webrtc = function() {
     this.peer = peer;
     this.tag = '->' + (peerSessions[this.peer] ||
                        this.peer.replace(/^[0-9a-fA-F-]+:/, "")) + ':';
+    this._controlListeners = new Instant.util.EventDispatcher();
     this._closeListeners = new Instant.util.EventTracker();
     this._init();
   }
@@ -73,6 +74,14 @@ Instant.webrtc = function() {
       Instant.webrtc._removeConnection(this.id);
       this._close();
     },
+    /* Add a listener for control messages of the given type. */
+    listenControl: function(type, cb) {
+      this._controlListeners.listen(type, cb);
+    },
+    /* Remove a control message listener. */
+    unlistenControl: function(type, cb) {
+      this._controlListeners.unlisten(type, cb);
+    },
     /* Call the given callback when the connection is closed. */
     listenClose: function(cb) {
       if (this._closeListeners != null) {
@@ -105,6 +114,7 @@ Instant.webrtc = function() {
         console.warn('WebRTC: Invalid control message (missing type):', msg);
         return;
       }
+      this._controlListeners.fire(msg.type, this, msg, this);
       Instant.webrtc._onControlMessage(msg, this);
     }
   };
