@@ -17,6 +17,7 @@ Instant.webrtc = function() {
     this.peer = peer;
     this.tag = '->' + (peerSessions[this.peer] ||
                        this.peer.replace(/^[0-9a-fA-F-]+:/, "")) + ':';
+    this._closeListeners = new Instant.util.EventTracker();
     this._init();
   }
   Connection.prototype = {
@@ -53,8 +54,10 @@ Instant.webrtc = function() {
     _close: function() {
       if (this.control != null) this.control.close();
       if (this.connection != null) this.connection.close();
+      if (this._closeListeners != null) this._closeListeners.fire(this, this);
       this.control = null;
       this.connection = null;
+      this._closeListeners = null;
     },
     /* Send an arbitrarily structured control message.
      * The message is JSON-stringified before actually being sent. */
@@ -69,6 +72,18 @@ Instant.webrtc = function() {
     close: function() {
       Instant.webrtc._removeConnection(this.id);
       this._close();
+    },
+    /* Call the given callback when the connection is closed. */
+    listenClose: function(cb) {
+      if (this._closeListeners != null) {
+        this._closeListeners.listen(cb);
+      } else {
+        cb.call(this, this);
+      }
+    },
+    /* Remove the given on-close callback. */
+    unlistenClose: function(cb) {
+      if (this._closeListeners != null) this._closeListeners.unlisten(cb);
     },
     /* Handle signaling input.
      * Overridden by a per-instance closure in _init(). */
