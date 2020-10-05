@@ -4,3 +4,21 @@
 .user-list .nick-box > .nick.highlight {
   font-weight: bold;
 }
+
+.user-list .nick-box:not(.has-p2p-chat) > .user-list-menu .action-p2p-chat {
+  display: none;
+}
+
+.p2p-chat-popup .message-pane {
+  width: auto;
+  overflow-y: auto;
+  margin: -5px;
+}
+
+.p2p-chat-popup .input-bar {
+  margin-bottom: 0;
+}
+.p2p-chat-popup .input-nick-cell {
+  display: -webkit-flex;
+  display: flex;
+}

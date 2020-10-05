@@ -176,6 +176,7 @@ Instant.webrtc = function() {
       Instant.timers.add(Instant.webrtc._doGC.bind(Instant.webrtc),
                          Instant.webrtc.GC_GRANULARITY);
       if (Instant.identity.id != null) handleIdentity();
+      Instant.webrtc.chat.init();
     },
     /* Return whether the module is ready for use.
      * Until this returns true, no functions (but init() and isReady()) should
@@ -546,6 +547,201 @@ Instant.webrtc = function() {
       } else {
         userNode.classList.remove('highlight');
       }
-    }
+    },
+    /* Peer-to-peer chat for debugging.
+     * Useless, isn't it? */
+    chat: function() {
+      /* Message ID counter. */
+      var msgidCounter = 0;
+      /* Mapping from P2P identities to popup nodes. */
+      var popups = {};
+      return {
+        /* Initialize submodule. */
+        init: function() {
+          Instant.listen('userList.update',
+            Instant.webrtc.chat._userListChanged);
+          Instant.listen('webrtc.peer.new',
+            Instant.webrtc.chat._addPeer);
+          Instant.listen('webrtc.peer.remove',
+            Instant.webrtc.chat._removePeer);
+          Instant.listen('webrtc.conn.close',
+            Instant.webrtc.chat._connectionClosed);
+          Instant.webrtc.addGlobalControlListener('chat',
+            Instant.webrtc.chat._onmessage);
+          var menuButton = $makeNode('button', 'button action-p2p-chat',
+                                     'P2P Chat');
+          menuButton.addEventListener('click', function(evt) {
+            var wrapperNode = evt.target.parentNode.parentNode;
+            if (! wrapperNode.classList.contains('has-p2p-chat')) return;
+            var peerSID = wrapperNode.firstChild.getAttribute('data-id');
+            var peerIdent = Instant.webrtc.getPeerIdentity(peerSID);
+            if (! peerIdent) return;
+            Instant.webrtc.chat.show(peerIdent,
+                                     wrapperNode.firstChild.textContent);
+            Instant.userList.showMenu(null);
+          });
+          Instant.userList.addMenuNode($makeFrag(' ', menuButton));
+        },
+        /* Update the nickname(s) in P2P chat popups. */
+        _userListChanged: function(event) {
+          var newSID = event.data.added;
+          if (! newSID) {
+            /* NOP */
+          } else if (newSID == Instant.identity.id) {
+            var newNick = Instant.identity.nick;
+            for (var peer in popups) {
+              if (! popups.hasOwnProperty(peer)) continue;
+              var nickNode = $sel('.input-nick-cell .nick', popups[peer]);
+              Instant.nick.updateNode(nickNode, newNick);
+            }
+          } else {
+            var peer = Instant.webrtc.getPeerIdentity(newSID);
+            var popup = popups[peer];
+            if (! popup) return;
+            var newNick = Instant.userList.get(newSID).textContent;
+            popup.setAttribute('data-peer-nick', newNick);
+            var nickNode = $sel('.peer-nick .nick', popup);
+            Instant.nick.updateNode(nickNode, newNick);
+          }
+        },
+        /* Register a user as potentially having P2P chat support. */
+        _addPeer: function(event) {
+          var node = Instant.userList.get(event.data.session);
+          if (! node) return;
+          node.parentNode.classList.add('has-p2p-chat');
+        },
+        /* Remove a user's potential-chat registration. */
+        _removePeer: function(event) {
+          var node = Instant.userList.get(event.data.session);
+          if (! node) return;
+          node.parentNode.classList.remove('has-p2p-chat');
+        },
+        /* Handle a connection close event. */
+        _connectionClosed: function(event) {
+          var peer = event.data.connection.peer;
+          var popup = popups[peer];
+          if (! popup) return;
+          Instant.webrtc.chat._showSystemMessage(peer, 'Connection lost.');
+          popup.classList.add('disconnected');
+          $cls('input-bar', popup).classList.add('offline');
+        },
+        /* Process an incoming P2P chat message. */
+        _onmessage: function(data, conn) {
+          var peer = conn.peer;
+          var session = Instant.webrtc.getPeerSID(peer);
+          var peerNick = null;
+          if (session) {
+            peerNick = Instant.userList.get(session).textContent;
+          }
+          if (! popups[peer]) {
+            popups[peer] = Instant.webrtc.chat._createPopup(peer, peerNick);
+            Instant.webrtc.chat._showSystemMessage(peer,
+                                                   '(External connection.)');
+          }
+          if (! Instant.popups.isShown(popups[peer])) {
+            Instant.webrtc._setHighlight(session, true);
+          }
+          Instant.webrtc.chat._showMessage(peer,
+            {nick: popups[peer].getAttribute('data-peer-nick'),
+             text: data.data});
+        },
+        /* Create a P2P chat popup for chatting with the given peer. */
+        _createPopup: function(peerIdent, peerNick) {
+          var popup = Instant.popups.make({
+            title: 'P2P Chat',
+            className: 'p2p-chat-popup',
+            content: $makeFrag(
+              ['div', 'popup-grid-wrapper', [
+                ['div', 'popup-grid', [
+                  ['b', null, 'With: '],
+                  ['span', 'popup-grid-wide peer-nick', [
+                    (peerNick) ? Instant.nick.makeNode(peerNick) :
+                                 Instant.nick.makeAnonymous()
+                  ]]
+                ]]
+              ]],
+              ['hr'],
+              ['div', 'message-pane', [
+                ['div', 'message-box', [
+                  ['div', 'input-bar', [
+                    ['div', 'input-info-cell'],
+                    ['div', 'input-nick-cell', [
+                      Instant.nick.makeNode(Instant.identity.nick)
+                    ]],
+                    ['div', 'input-message-cell', [
+                      ['input', 'input-message', {type: 'text'}]
+                    ]]
+                  ]]
+                ]]
+              ]]
+            ),
+            buttons: [
+              {text: 'Hide', onclick: function() {
+                Instant.popups.del(popup);
+              }},
+              {text: 'Disconnect', color: '#c00000', className: 'disconnect',
+                  onclick: function() {
+                var conn = Instant.webrtc.getConnectionWith(peerIdent);
+                if (conn) conn.close();
+                Instant.popups.del(popup);
+                delete popups[peerIdent];
+              }}
+            ],
+            focusSel: '.input-message'
+          });
+          popup.setAttribute('data-peer-nick', peerNick);
+          var input = $cls('input-message', popup);
+          input.addEventListener('keydown', function(event) {
+            if (event.keyCode == 13) { // Return.
+              if (! input.value || popup.classList.contains('disconnected'))
+                return;
+              var conn = Instant.webrtc.getConnectionWith(peerIdent);
+              if (! conn) {
+                Instant.webrtc.chat._showSystemMessage(peerIdent,
+                  'Not connected?!', 'Error');
+                return;
+              }
+              conn.sendControlMessage('chat', input.value);
+              Instant.webrtc.chat._showMessage(peerIdent, {
+                nick: Instant.identity.nick,
+                text: input.value
+              });
+              input.value = '';
+            }
+          });
+          return popup;
+        },
+        /* Add a message to the P2P chat window for the given peer. */
+        _showMessage: function(peerIdent, params) {
+          var popup = popups[peerIdent];
+          if (! popup) return;
+          params.id = 'p2p-' + (++msgidCounter);
+          params.timestamp = Date.now();
+          var newNode = Instant.message.makeMessage(params);
+          var messageBox = $cls('message-box', popup);
+          var input = $cls('input-bar', popup);
+          messageBox.insertBefore(newNode, input);
+        },
+        /* Add a system message to the P2P chat window for the given peer. */
+        _showSystemMessage: function(peerIdent, text, nick) {
+          Instant.webrtc.chat._showMessage(peerIdent, {nick: nick || 'System',
+                                                       text: '/me ' + text});
+        },
+        /* Show the P2P chat with the given session ID, creating it if
+         * necessary. */
+        show: function(peerIdent, peerNick) {
+          if (! popups[peerIdent]) {
+            popups[peerIdent] = Instant.webrtc.chat._createPopup(peerIdent,
+                                                                 peerNick);
+            Instant.webrtc.chat._showSystemMessage(peerIdent,
+                                                   'Connecting...');
+            Instant.webrtc.connectTo(peerIdent);
+          }
+          var peerSession = Instant.webrtc.getPeerSID(peerIdent);
+          Instant.webrtc._setHighlight(peerSession, false);
+          Instant.popups.add(popups[peerIdent]);
+        }
+      };
+    }()
   };
 }();
