@@ -141,7 +141,8 @@ Instant.webrtc = function() {
     /* Initialize submodule. */
     init: function() {
       function handleIdentity() {
-        if (identity == null) {
+        if (identity == null ||
+            Instant.identity.uuid != identity.replace(/:.*$/, "")) {
           identity = Instant.identity.uuid + ':' + Instant.identity.id;
         }
         Instant.connection.sendSeq({type: 'who'}, function(msg) {
