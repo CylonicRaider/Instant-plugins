@@ -22,3 +22,6 @@
   display: -webkit-flex;
   display: flex;
 }
+.p2p-chat-popup .input-nick-cell .nick {
+  white-space: nowrap;
+}
