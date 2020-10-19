@@ -4,3 +4,4 @@
 /src/**/*.class
 # Ignore temporary build files
 /build/
+.deps.mk
