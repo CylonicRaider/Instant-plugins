@@ -52,6 +52,6 @@ out/%.jar: build/%.jar | out
 	    if [ -f lib/$$name.jar ]; then \
 	        echo "out/$$name.jar: lib/$$name.jar"; \
 	    fi; \
-	done) | sed -e 's/$$/&&/g' > $@
+	done) | sed -e 's/\$$/&&/g' > $@
 
 -include .deps.mk
