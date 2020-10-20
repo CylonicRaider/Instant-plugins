@@ -24,22 +24,24 @@ build out:
 	mkdir $@
 
 build/%.jar: | build
-	find src/$* -name '*.class' -exec rm {} +
-	cd src/$* && find . -name '*.java' -print0 | xargs -0r \
+	@echo "Compiling plugin $*"
+	@find src/$* -name '*.class' -exec rm {} +
+	@cd src/$* && find . -name '*.java' -print0 | xargs -0r \
 	    javac -cp $(CLASSPATH):$(PLUGIN_CLASSPATH) $(JAVACFLAGS)
-	cd src/$* && jar cf ../../build/$*.jar META-INF/MANIFEST.MF \
+	@cd src/$* && jar cf ../../build/$*.jar META-INF/MANIFEST.MF \
 	    $$(find . -name '*.class')
 
 out/%.jar: build/%.jar | out
-	cp build/$*.jar out/$*.jar
-	if [ -f lib/$*.jar ]; then mkdir -p build/.extract/$* && \
+	@echo "Building plugin $*"
+	@cp build/$*.jar out/$*.jar
+	@if [ -f lib/$*.jar ]; then mkdir -p build/.extract/$* && \
 	    cd build/.extract/$* && jar xf ../../../lib/$*.jar && \
 	    rm -f META-INF/MANIFEST.MF && jar uf ../../../out/$*.jar \
 	    $$(find . -type f); \
 	fi
-	cd src/$* && jar uf ../../out/$*.jar $$(find . -type f -not -path \
+	@cd src/$* && jar uf ../../out/$*.jar $$(find . -type f -not -path \
 	    './META-INF/MANIFEST.MF')
-	if [ -f src/$*/META-INF/MANIFEST.MF ]; then \
+	@if [ -f src/$*/META-INF/MANIFEST.MF ]; then \
 	    cd src/$* && jar ufm ../../out/$*.jar META-INF/MANIFEST.MF; \
 	fi
 
