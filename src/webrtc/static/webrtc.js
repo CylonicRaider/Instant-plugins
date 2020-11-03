@@ -338,7 +338,7 @@ Instant.webrtc = function() {
      *               singaling datum from the counterpart arrives. This is
      *               called while the _negotiate() call is underway, exactly
      *               once.
-     * signalTo      is a function that takes singaling datum and relays it
+     * signalTo      is a function that takes a singaling datum and relays it
      *               the counterpart.
      * peerFlag      is a Boolean that should be true on one peer and false on
      *               the other. */
