@@ -5,6 +5,15 @@
   font-weight: bold;
 }
 
+.video-config:not(.has-preview) .hide-preview,
+.video-config:not(.has-preview) .video-preview,
+.video-config.has-preview .show-preview {
+  display: none;
+}
+.video-config.has-preview .hide-preview {
+  margin-left: 0;
+}
+
 .user-list .nick-box:not(.has-p2p-chat) > .user-list-menu .action-p2p-chat {
   display: none;
 }

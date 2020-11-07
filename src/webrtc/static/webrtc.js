@@ -177,6 +177,7 @@ Instant.webrtc = function() {
       Instant.timers.add(Instant.webrtc._doGC.bind(Instant.webrtc),
                          Instant.webrtc.GC_GRANULARITY);
       if (Instant.identity.id != null) handleIdentity();
+      Instant.webrtc.ui.init();
       Instant.webrtc.chat.init();
     },
     /* Return whether the module is ready for use.
@@ -247,6 +248,12 @@ Instant.webrtc = function() {
       } catch (exc) {
         return Promise.reject(exc);
       }
+    },
+    /* Stop the given stream's media transmission. */
+    closeMedia: function(stream) {
+      stream.getTracks().forEach(function(track) {
+        track.stop();
+      });
     },
     /* Create and return  a <video> element displaying the media from the
      * given stream. */
@@ -549,6 +556,90 @@ Instant.webrtc = function() {
         userNode.classList.remove('highlight');
       }
     },
+    /* Video sharing UI. */
+    ui: function() {
+      /* Sharing window. */
+      var shareWin = null;
+      return {
+        /* Initialize submodule. */
+        init: function() {
+          shareWin = Instant.popups.windows.make({
+            title: 'Video sharing',
+            className: 'video-config',
+            content: $makeFrag(
+              ['div', 'popup-grid-wrapper', [
+                ['div', 'popup-grid', [
+                  ['b', null, 'Share: '],
+                  ['form', 'popup-grid-wide video-type', [
+                    ['label', [
+                      ['input', {type: 'radio', name: 'type', value: 'a'}],
+                      'Audio'
+                    ]], ' ',
+                    ['label', [
+                      ['input', {type: 'radio', name: 'type', value: 'v'}],
+                      'Video'
+                    ]], ' ',
+                    ['label', [
+                      ['input', {type: 'radio', name: 'type', value: 'av',
+                        checked: 'checked'}],
+                      'Both'
+                    ]]
+                  ]]
+                ]]
+              ]],
+              ['div', 'video-preview']
+            ),
+            buttons: [
+              {text: 'Preview', onclick: function() {
+                shareWin.classList.add('has-preview');
+                Instant.webrtc.ui.updatePreview();
+              }, className: 'show-preview'},
+              {text: 'Hide preview', onclick: function() {
+                shareWin.classList.remove('has-preview');
+                Instant.webrtc.ui.updatePreview();
+              }, className: 'hide-preview'},
+              null, // Spacer
+              {text: 'Dismiss', onclick: function() {
+                Instant.popups.windows.del(shareWin);
+              }}
+            ]
+          });
+          Instant.popups.menu.addNew({
+            text: 'Share video',
+            narrowText: 'Video',
+            onclick: function() {
+              Instant.popups.windows.add(shareWin);
+              Instant.popups.hideAll(true);
+            }
+          });
+          var videoTypeForm = $cls('video-type', shareWin);
+          var bup = Instant.webrtc.ui.updatePreview.bind(Instant.webrtc.ui);
+          Array.prototype.forEach.call($selAll('input', videoTypeForm),
+                                       function(el) {
+            el.addEventListener('change', bup);
+          });
+        },
+        /* Update the preview video parameters */
+        updatePreview: function(e) {
+          var holder = $cls('video-preview', shareWin);
+          if (! shareWin.classList.contains('has-preview')) {
+            while (holder.firstChild) holder.removeChild(holder.firstChild);
+            return;
+          }
+          var form = $cls('video-type', shareWin);
+          var type = form.elements['type'].value;
+          var audio = (type.indexOf('a') != -1);
+          var video = (type.indexOf('v') != -1);
+          Instant.webrtc.getUserMedia(audio, video).then(function(stream) {
+            var displayNode = Instant.webrtc.display(stream);
+            while (holder.firstChild) holder.removeChild(holder.firstChild);
+            holder.appendChild(displayNode);
+          }).catch(function(err) {
+            Instant.errors.showError(err);
+          });
+        }
+      };
+    }(),
     /* Peer-to-peer chat for debugging.
      * Useless, isn't it? */
     chat: function() {
