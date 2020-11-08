@@ -647,6 +647,11 @@ Instant.webrtc = function() {
           var audio = (type.indexOf('a') != -1);
           var video = (type.indexOf('v') != -1);
           Instant.webrtc.getUserMedia(audio, video).then(function(stream) {
+            // The user could have cancelled the preview in the meantime.
+            if (! shareWin.classList.contains('has-preview')) {
+              Instant.webrtc.closeMedia(stream);
+              return;
+            }
             Instant.webrtc.ui._replacePreview(stream);
           }).catch(function(err) {
             Instant.errors.showError(err);
