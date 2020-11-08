@@ -161,7 +161,7 @@ Instant.webrtc = function() {
         for (var sid in peers) {
           if (! peers.hasOwnProperty(sid)) continue;
           if (who.hasOwnProperty(sid)) continue;
-          Instant.webrtc._deletePeer(peers[sid], sid);
+          Instant.webrtc._removePeer(peers[sid], sid);
         }
       }
       Instant.query.initVerboseFlag(window, 'logInstantWebRTC', 'webrtc');
@@ -631,7 +631,7 @@ Instant.webrtc = function() {
           var audio = (type.indexOf('a') != -1);
           var video = (type.indexOf('v') != -1);
           Instant.webrtc.getUserMedia(audio, video).then(function(stream) {
-            var displayNode = Instant.webrtc.display(stream);
+            var displayNode = Instant.webrtc.displayMedia(stream);
             while (holder.firstChild) holder.removeChild(holder.firstChild);
             holder.appendChild(displayNode);
           }).catch(function(err) {
