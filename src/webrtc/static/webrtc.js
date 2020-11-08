@@ -560,6 +560,8 @@ Instant.webrtc = function() {
     ui: function() {
       /* Sharing window. */
       var shareWin = null;
+      /* The media stream currently being previewed. */
+      var previewStream = null;
       return {
         /* Initialize submodule. */
         init: function() {
@@ -619,11 +621,25 @@ Instant.webrtc = function() {
             el.addEventListener('change', bup);
           });
         },
-        /* Update the preview video parameters */
-        updatePreview: function(e) {
+        /* Common code for removing or replacing the video preview */
+        _replacePreview: function(newStream) {
           var holder = $cls('video-preview', shareWin);
+          if (previewStream != null) {
+            Instant.webrtc.closeMedia(previewStream);
+          }
+          previewStream = newStream;
+          while (holder.firstChild) {
+            holder.removeChild(holder.firstChild);
+          }
+          if (newStream != null) {
+            var displayNode = Instant.webrtc.displayMedia(newStream);
+            holder.appendChild(displayNode);
+          }
+        },
+        /* Update the preview video parameters */
+        updatePreview: function() {
           if (! shareWin.classList.contains('has-preview')) {
-            while (holder.firstChild) holder.removeChild(holder.firstChild);
+            Instant.webrtc.ui._replacePreview(null);
             return;
           }
           var form = $cls('video-type', shareWin);
@@ -631,9 +647,7 @@ Instant.webrtc = function() {
           var audio = (type.indexOf('a') != -1);
           var video = (type.indexOf('v') != -1);
           Instant.webrtc.getUserMedia(audio, video).then(function(stream) {
-            var displayNode = Instant.webrtc.displayMedia(stream);
-            while (holder.firstChild) holder.removeChild(holder.firstChild);
-            holder.appendChild(displayNode);
+            Instant.webrtc.ui._replacePreview(stream);
           }).catch(function(err) {
             Instant.errors.showError(err);
           });

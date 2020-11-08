@@ -5,8 +5,17 @@
   font-weight: bold;
 }
 
+.video-preview:not(:empty) {
+  text-align: center;
+  margin-top: 5px;
+}
+.video-preview video {
+  max-width: 100%;
+  max-height: 5em;
+  background: #101010;
+}
+
 .video-config:not(.has-preview) .hide-preview,
-.video-config:not(.has-preview) .video-preview,
 .video-config.has-preview .show-preview {
   display: none;
 }
