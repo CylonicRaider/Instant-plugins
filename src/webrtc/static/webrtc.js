@@ -264,6 +264,7 @@ Instant.webrtc = function() {
       } else {
         ret.src = URL.createObjectURL(stream);
       }
+      ret.autoplay = true;
       return ret;
     },
     /* Calculate the unique ID of any connection between this peer and the
