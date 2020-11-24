@@ -133,6 +133,10 @@ Instant.webrtc = function() {
   var signalBuffer = null;
   /* Global control message listeners. */
   var globalControlListeners = new Instant.util.EventDispatcher();
+  /* Objects shared locally or remotely. */
+  var localShares = {}, remoteShares = {};
+  /* Counter for share ID-s. */
+  var shareCounter = 0;
   return {
     /* Time after which an errored-out connection should be discarded. */
     GC_TIMEOUT: 60000,
@@ -171,6 +175,8 @@ Instant.webrtc = function() {
       Instant.connection.addHandler('p2p-query', handleMessage);
       Instant.connection.addHandler('p2p-announce', handleMessage);
       Instant.connection.addHandler('p2p-signal', handleMessage);
+      Instant.connection.addHandler('p2p-share', handleMessage);
+      Instant.connection.addHandler('p2p-unshare', handleMessage);
       Instant.listen('connection.close', function(event) {
         signalBuffer = {};
       });
@@ -233,6 +239,27 @@ Instant.webrtc = function() {
     getConnectionWith: function(peerIdent) {
       var connID = Instant.webrtc._calcConnectionID(peerIdent);
       return connections[connID] || null;
+    },
+    /* Start sharing some resource.
+     * Returns the (newly generate) ID of the share (which is also entered
+     * into the "id" property of data). */
+    startSharing: function(type, data) {
+      data.id = identity + '/' + (++shareCounter);
+      data.type = type;
+      localShares[data.id] = data;
+      var announce = {type: 'p2p-share', provider: 'webrtc', data: data};
+      Instant._fireListeners('webrtc.share.start', data);
+      Instant.connection.sendBroadcast(announce);
+      return data.id;
+    },
+    /* Un-share some resource. */
+    stopSharing: function(id) {
+      var data = localShares[id];
+      delete localShares[id];
+      if (! item) return;
+      var announce = {type: 'p2p-unshare', provider: 'webrtc', id: data.id};
+      Instant._fireListeners('webrtc.share.stop', data);
+      Instant.connection.sendBroadcast(announce);
     },
     /* Create a media stream object capturing audio and/or video from the
      * user.
@@ -538,6 +565,26 @@ Instant.webrtc = function() {
           trace(conn.tag, 'Signaling in:', data.data);
           conn._onSignalingInput(data.data);
           Instant.webrtc._setConnGC(connID, false);
+          break;
+        case 'p2p-share': /* Someone is sharing a resource. */
+          if (msg.from == Instant.identity.id) break;
+          var peerIdent = Instant.webrtc.getPeerIdentity(msg.from);
+          if (peerIdent == null) break;
+          var desc = data.data;
+          if (! remoteShares[peerIdent]) {
+            remoteShares[peerIdent] = {desc.id: desc};
+          } else {
+            remoteShares[peerIdent][desc.id] = desc;
+          }
+          Instant.fireListeners('webrtc.share.newRemote', desc);
+          break;
+        case 'p2p-unshare': /* Someone is no longer sharing a resource. */
+          var peerIdent = Instant.webrtc.getPeerIdentity(msg.from);
+          if (peerIdent == null || ! remoteShares[peerIdent]) break;
+          var desc = remoteShares[peerIdent][data.id];
+          if (! desc) break;
+          Instant.fireListeners('webrtc.share.delRemote', desc);
+          delete remoteShares[peerIdent][desc.id];
           break;
         default:
           console.warn('WebRTC: Unknown client message?!', data);
