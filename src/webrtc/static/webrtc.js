@@ -133,8 +133,10 @@ Instant.webrtc = function() {
   var signalBuffer = null;
   /* Global control message listeners. */
   var globalControlListeners = new Instant.util.EventDispatcher();
-  /* Objects shared locally or remotely. */
+  /* Resources shared locally or remotely. */
   var localShares = {}, remoteShares = {};
+  /* Whether we have ever offered resource sharing. */
+  var hasShared = false;
   /* Counter for share ID-s. */
   var shareCounter = 0;
   return {
@@ -176,7 +178,6 @@ Instant.webrtc = function() {
       Instant.connection.addHandler('p2p-announce', handleMessage);
       Instant.connection.addHandler('p2p-signal', handleMessage);
       Instant.connection.addHandler('p2p-share', handleMessage);
-      Instant.connection.addHandler('p2p-unshare', handleMessage);
       Instant.listen('connection.close', function(event) {
         signalBuffer = {};
       });
@@ -241,15 +242,16 @@ Instant.webrtc = function() {
       return connections[connID] || null;
     },
     /* Start sharing some resource.
-     * Returns the (newly generate) ID of the share (which is also entered
-     * into the "id" property of data). */
+     * The given type and a newly generated unique ID are entered into data
+     * (as the properties "type" and "id", respectively); the ID is returned
+     * as well. */
     startSharing: function(type, data) {
-      data.id = identity + '/' + (++shareCounter);
       data.type = type;
+      data.id = identity + '/' + (++shareCounter);
       localShares[data.id] = data;
-      var announce = {type: 'p2p-share', provider: 'webrtc', data: data};
       Instant._fireListeners('webrtc.share.start', data);
-      Instant.connection.sendBroadcast(announce);
+      Instant.connection.sendBroadcast({type: 'p2p-share', add: [data]});
+      hasShared = true;
       return data.id;
     },
     /* Un-share some resource. */
@@ -257,9 +259,8 @@ Instant.webrtc = function() {
       var data = localShares[id];
       delete localShares[id];
       if (! item) return;
-      var announce = {type: 'p2p-unshare', provider: 'webrtc', id: data.id};
       Instant._fireListeners('webrtc.share.stop', data);
-      Instant.connection.sendBroadcast(announce);
+      Instant.connection.sendBroadcast({type: 'p2p-share', remove: [id]});
     },
     /* Create a media stream object capturing audio and/or video from the
      * user.
@@ -361,9 +362,49 @@ Instant.webrtc = function() {
         delete peers[sid];
       }
       if (ident && peerSessions[ident] == sid) {
+        Instant.webrtc._clearRemoteShares(ident);
         delete peerSessions[ident];
         Instant._fireListeners('webrtc.peer.remove', {identity: ident,
                                                       session: sid});
+      }
+    },
+    /* Register a remote resource share. */
+    _addRemoteShare: function(peerIdent, desc) {
+      var peerShares = remoteShares[peerIdent];
+      if (! peerShares) {
+        peerShares = {};
+        remoteShares[peerIdent] = peerShares;
+      }
+      peerShares[desc.id] = desc;
+      Instant._fireListeners('webrtc.share.newRemote', {peer: peerIdent,
+                                                        data: desc});
+    },
+    /* Destroy a remote resource share. */
+    _removeRemoteShare: function(peerIdent, id) {
+      var peerShares = remoteShares[peerIdent];
+      if (! peerShares) return;
+      var desc = peerShares[id];
+      if (! desc) return;
+      delete peerShares[id];
+      Instant._fireListeners('webrtc.share.delRemote', {peer: peerIdent,
+                                                        data: desc});
+    },
+    /* Remove all remote resource shares.
+     * keep, if not null, is a list of IDs to spare from the cleansing. */
+    _clearRemoteShares: function(peerIdent, keep) {
+      var peerShares = remoteShares[peerIdent];
+      if (! peerShares) return;
+      var delList = [];
+      for (var key in peerShares) {
+        if (! peerShares.hasOwnProperty(key)) continue;
+        if (keep && keep.indexOf(key) != -1) continue;
+        delList.push(key);
+      }
+      for (var i = 0; i < delList.length; i++) {
+        var desc = peerShares[delList[i]];
+        delete peerShares[delList[i]];
+        Instant._fireListeners('webrtc.share.delRemote', {peer: peerIdent,
+                                                          data: desc});
       }
     },
     /* Configure the given RTCPeerConnection to negotiate with a counterpart
@@ -462,14 +503,25 @@ Instant.webrtc = function() {
       addStateTracker(conn, 'iceConnectionState');
       addStateTracker(conn, 'signalingState');
     },
-    /* Send an announcement of our P2P support to the given receiver
-     * (defaulting to everyone). */
+    /* Send an announcement of our P2P support, as well as related setup
+     * information, to the given receiver (defaulting to everyone). */
     _sendAnnounce: function(receiver) {
       var announce = {type: 'p2p-announce', identity: identity,
                       providers: ['webrtc']};
       Instant._fireListeners('webrtc.announce', {message: announce,
                                                  to: receiver});
       Instant.connection.send(receiver, announce);
+      if (hasShared) {
+        var shares = [];
+        for (var key in localShares) {
+          if (! localShares.hasOwnProperty(key)) continue;
+          shares.push(localShares[key]);
+        }
+        var shareAnnounce = {type: 'p2p-share', reset: true, add: shares};
+        Instant._fireListeners('webrtc.share.announce',
+                               {message: shareAnnounce, to: receiver});
+        Instant.connection.send(receiver, shareAnnounce);
+      }
     },
     /* Send an (already-wrapped) signaling message to the peer with the given
      * identity. */
@@ -566,25 +618,32 @@ Instant.webrtc = function() {
           conn._onSignalingInput(data.data);
           Instant.webrtc._setConnGC(connID, false);
           break;
-        case 'p2p-share': /* Someone is sharing a resource. */
+        case 'p2p-share': /* Someone is updating their sharing status. */
           if (msg.from == Instant.identity.id) break;
           var peerIdent = Instant.webrtc.getPeerIdentity(msg.from);
-          if (peerIdent == null) break;
-          var desc = data.data;
-          if (! remoteShares[peerIdent]) {
-            remoteShares[peerIdent] = {desc.id: desc};
-          } else {
-            remoteShares[peerIdent][desc.id] = desc;
+          if (peerIdent == null) {
+            break;
           }
-          Instant.fireListeners('webrtc.share.newRemote', desc);
-          break;
-        case 'p2p-unshare': /* Someone is no longer sharing a resource. */
-          var peerIdent = Instant.webrtc.getPeerIdentity(msg.from);
-          if (peerIdent == null || ! remoteShares[peerIdent]) break;
-          var desc = remoteShares[peerIdent][data.id];
-          if (! desc) break;
-          Instant.fireListeners('webrtc.share.delRemote', desc);
-          delete remoteShares[peerIdent][desc.id];
+          if (data.reset) {
+            var keep = null;
+            if (data.add) {
+              keep = [];
+              data.add.forEach(function(desc) {
+                keep.push(desc.id);
+              });
+            }
+            Instant.webrtc._clearRemoteShares(peerIdent, keep);
+          }
+          if (data.add) {
+            data.add.forEach(function(desc) {
+              Instant.webrtc._addRemoteShare(peerIdent, desc);
+            });
+          }
+          if (data.remove) {
+            data.remove.forEach(function(id) {
+              Instant._removeRemoteShare(peerIdent, id);
+            });
+          }
           break;
         default:
           console.warn('WebRTC: Unknown client message?!', data);
