@@ -133,8 +133,9 @@ Instant.webrtc = function() {
   var signalBuffer = null;
   /* Global control message listeners. */
   var globalControlListeners = new Instant.util.EventDispatcher();
-  /* Resources shared locally or remotely. */
-  var localShares = {}, remoteShares = {};
+  /* Resources shared locally, or remotely; mapping from share ID-s to
+   * peer identities. */
+  var localShares = {}, remoteShares = {}, remoteShareIndex = {};
   /* Whether we have ever offered resource sharing. */
   var hasShared = false;
   /* Counter for share ID-s. */
@@ -376,11 +377,17 @@ Instant.webrtc = function() {
         remoteShares[peerIdent] = peerShares;
       }
       peerShares[desc.id] = desc;
+      remoteShareIndex[desc.id] = peerIdent;
       Instant._fireListeners('webrtc.share.newRemote', {peer: peerIdent,
                                                         data: desc});
     },
+    /* Get the identity of the peer sharing the named resource, or null. */
+    _getRemoteSharePeer: function(id) {
+      return remoteShareIndex[id] || null;
+    },
     /* Destroy a remote resource share. */
     _removeRemoteShare: function(peerIdent, id) {
+      delete remoteShareIndex[id];
       var peerShares = remoteShares[peerIdent];
       if (! peerShares) return;
       var desc = peerShares[id];
@@ -403,6 +410,7 @@ Instant.webrtc = function() {
       for (var i = 0; i < delList.length; i++) {
         var desc = peerShares[delList[i]];
         delete peerShares[delList[i]];
+        delete remoteShareIndex[delList[i]];
         Instant._fireListeners('webrtc.share.delRemote', {peer: peerIdent,
                                                           data: desc});
       }
