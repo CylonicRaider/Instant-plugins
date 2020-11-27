@@ -133,6 +133,8 @@ Instant.webrtc = function() {
   var signalBuffer = null;
   /* Global control message listeners. */
   var globalControlListeners = new Instant.util.EventDispatcher();
+  /* Objects containing sharing handler functions. */
+  var shareHandlers = {};
   /* Resources shared locally, or remotely; mapping from share ID-s to
    * peer identities. */
   var localShares = {}, remoteShares = {}, remoteShareIndex = {};
@@ -179,6 +181,8 @@ Instant.webrtc = function() {
       Instant.connection.addHandler('p2p-announce', handleMessage);
       Instant.connection.addHandler('p2p-signal', handleMessage);
       Instant.connection.addHandler('p2p-share', handleMessage);
+      Instant.connection.addHandler('p2p-get-share', handleMessage);
+      Instant.connection.addHandler('p2p-drop-share', handleMessage);
       Instant.listen('connection.close', function(event) {
         signalBuffer = {};
       });
@@ -242,10 +246,15 @@ Instant.webrtc = function() {
       var connID = Instant.webrtc._calcConnectionID(peerIdent);
       return connections[connID] || null;
     },
+    /* Register the given set of functions for handling the given shared
+     * resource type. */
+    registerShareType: function(type, funcs) {
+      shareHandlers[type] = funcs;
+    },
     /* Start sharing some resource.
      * The given type and a newly generated unique ID are entered into data
-     * (as the properties "type" and "id", respectively); the ID is returned
-     * as well. */
+     * (as the properties "type" and "id", respectively).
+     * Returns the ID of the new share. */
     startSharing: function(type, data) {
       data.type = type;
       data.id = identity + '/' + (++shareCounter);
@@ -262,6 +271,22 @@ Instant.webrtc = function() {
       if (! item) return;
       Instant._fireListeners('webrtc.share.stop', data);
       Instant.connection.sendBroadcast({type: 'p2p-share', remove: [id]});
+    },
+    /* Request the given remote share. */
+    requestRemoteShare: function(id) {
+      var peerIdent = Instant.webrtc._getRemoteSharePeer(id);
+      if (peerIdent == null) return;
+      var peerSID = Instant.webrtc.getPeerSID(peerIdent);
+      if (peerSID == null) return;
+      Instant.connection.send(peerSID, {type: 'p2p-get-share', id: id});
+    },
+    /* Cancel the request of the given share. */
+    dropRemoteShare: function(id) {
+      var peerIdent = Instant.webrtc._getRemoteSharePeer(id);
+      if (peerIdent == null) return;
+      var peerSID = Instant.webrtc.getPeerSID(peerIdent);
+      if (peerSID == null) return;
+      Instant.connection.send(peerSID, {type: 'p2p-drop-share', id: id});
     },
     /* Create a media stream object capturing audio and/or video from the
      * user.
@@ -652,6 +677,18 @@ Instant.webrtc = function() {
               Instant._removeRemoteShare(peerIdent, id);
             });
           }
+          break;
+        case 'p2p-get-share': /* Someone is requesting a share. */
+          var share = localShares[data.id];
+          if (! share) return;
+          var handler = shareHandlers[share.type].get;
+          handler.call(share, share, msg.from, msg);
+          break;
+        case 'p2p-drop-share': /* Someone no longer wants a share. */
+          var share = localShares[data.id];
+          if (! share) return;
+          var handler = shareHandlers[share.type].drop;
+          handler.call(share, share, msg.from, msg);
           break;
         default:
           console.warn('WebRTC: Unknown client message?!', data);
