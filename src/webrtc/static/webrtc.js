@@ -1,6 +1,9 @@
 
 /* Instant video chat plugin functionality */
 
+/* Strict mode FTW! */
+'use strict';
+
 Instant.webrtc = function() {
   /* For debugging. */
   function trace(msg) {
