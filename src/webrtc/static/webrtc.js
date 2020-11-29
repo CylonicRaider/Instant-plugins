@@ -186,6 +186,7 @@ Instant.webrtc = function() {
       Instant.connection.addHandler('p2p-share', handleMessage);
       Instant.connection.addHandler('p2p-get-share', handleMessage);
       Instant.connection.addHandler('p2p-drop-share', handleMessage);
+      Instant.connection.addHandler('p2p-error', handleMessage);
       Instant.listen('connection.close', function(event) {
         signalBuffer = {};
       });
@@ -250,15 +251,27 @@ Instant.webrtc = function() {
       return connections[connID] || null;
     },
     /* Register the given set of functions for handling the given shared
-     * resource type. */
+     * resource type.
+     * funcs is an object including the following properties:
+     * get(share, peerSID, rawmsg): Called when the given peer (as indicated
+     *   by its Instant connection ID) requests the given share. rawmsg is the
+     *   (entire) API message via which the peer expresses its desire for the
+     *   share. The return value is ignored.
+     * drop(share, peerSID, rawmsg): Called when the given peer wishes not to
+     *   receive the given share anymore. The arguments and the return value
+     *   are the same as for get(). */
     registerShareType: function(type, funcs) {
       shareHandlers[type] = funcs;
     },
     /* Start sharing some resource.
      * The given type and a newly generated unique ID are entered into data
      * (as the properties "type" and "id", respectively).
+     * The share type must have been registered using registerShareType()
+     * first, or an error is thrown.
      * Returns the ID of the new share. */
     startSharing: function(type, data) {
+      if (! shareHandlers[type])
+        throw new Error('Unrecognized share type ' + type);
       data.type = type;
       data.id = identity + '/' + (++shareCounter);
       localShares[data.id] = data;
@@ -683,15 +696,28 @@ Instant.webrtc = function() {
           break;
         case 'p2p-get-share': /* Someone is requesting a share. */
           var share = localShares[data.id];
-          if (! share) return;
-          var handler = shareHandlers[share.type].get;
-          handler.call(share, share, msg.from, msg);
+          if (! share) {
+            Instant.connection.sendUnicast(msg.from, {type: 'p2p-error',
+              code: 'NO_SHARE', message: 'No such share',
+              detail: {id: data.id}});
+            return;
+          }
+          var handlers = shareHandlers[share.type];
+          handlers.get(share, msg.from, msg);
           break;
         case 'p2p-drop-share': /* Someone no longer wants a share. */
           var share = localShares[data.id];
-          if (! share) return;
-          var handler = shareHandlers[share.type].drop;
-          handler.call(share, share, msg.from, msg);
+          if (! share) {
+            Instant.connection.sendUnicast(msg.from, {type: 'p2p-error',
+              code: 'NO_SHARE', message: 'No such share',
+              detail: {id: data.id}});
+            return;
+          }
+          var handlers = shareHandlers[share.type];
+          handlers.drop(share, msg.from, msg);
+          break;
+        case 'p2p-error':
+          console.warn('P2P error message:', msg);
           break;
         default:
           console.warn('WebRTC: Unknown client message?!', data);
