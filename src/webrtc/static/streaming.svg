@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0,0 32,32">
+  <title>Streaming</title>
+  <g transform="translate(8,16) rotate(-45)">
+    <circle r="4"/>
+    <path d="M 10,0 A 10,10 0 0,1 0,10 M 18,0 A 18,18 0 0,1 0,18"
+          fill="none" stroke="black" stroke-width="4"/>
+  </g>
+</svg>
