@@ -20,6 +20,7 @@ Instant.webrtc = function() {
     this.peer = peer;
     this.tag = '->' + (peerSessions[this.peer] ||
                        this.peer.replace(/^[0-9a-fA-F-]+:/, "")) + ':';
+    this.extra = {};
     this._controlListeners = new Instant.util.EventDispatcher();
     this._closeListeners = new Instant.util.EventTracker();
     this._init();
@@ -743,6 +744,8 @@ Instant.webrtc = function() {
       var shareWin = null;
       /* The media stream currently being previewed. */
       var previewStream = null;
+      /* The media stream currently being shared, and its connection ID. */
+      var shareStream = null, shareID = null;
       return {
         /* Initialize submodule. */
         init: function() {
@@ -784,7 +787,16 @@ Instant.webrtc = function() {
               null, // Spacer
               {text: 'Dismiss', onclick: function() {
                 Instant.popups.windows.del(shareWin);
-              }}
+              }},
+              {text: 'Share', onclick: function() {
+                Instant.webrtc.ui._startSharing();
+              }, className: 'start-sharing popup-text-create'},
+              {text: 'Update share', onclick: function() {
+                Instant.webrtc.ui._startSharing();
+              }, className: 'update-sharing popup-text-create'},
+              {text: 'Stop sharing', onclick: function() {
+                Instant.webrtc.ui._stopSharing();
+              }, className: 'stop-sharing popup-text-delete'}
             ]
           });
           Instant.popups.menu.addNew({
@@ -801,6 +813,35 @@ Instant.webrtc = function() {
                                        function(el) {
             el.addEventListener('change', bup);
           });
+          Instant.webrtc.registerShareType('video', {
+            get: function(share, peerSID) {
+              if (shareStream == null) return;
+              var peerIdent = Instant.webrtc.getPeerIdentity(peerSID);
+              if (peerIdent == null) return;
+              var conn = Instant.webrtc.connect(peerIdent);
+              conn.extra.sendStream = shareStream;
+              shareStream.getTracks().forEach(function(track) {
+                conn.connection.addTrack(track);
+              });
+            },
+            drop: function(share, peerSID) {
+              var peerIdent = Instant.webrtc.getPeerIdentity(peerSID);
+              if (peerIdent == null) return;
+              var conn = Instant.webrtc.getConnectionWith(peerIdent);
+              if (conn == null || conn.extra.sendStream == null) return;
+              conn.extra.sendStream.getTracks().forEach(function(track) {
+                conn.connection.removeTrack(track);
+              });
+            }
+          });
+        },
+        /* Retrieve a media stream matching the current settings */
+        _getMediaStreamAsync: function() {
+          var form = $cls('video-type', shareWin);
+          var type = form.elements['type'].value;
+          var audio = (type.indexOf('a') != -1);
+          var video = (type.indexOf('v') != -1);
+          return Instant.webrtc.getUserMedia(audio, video);
         },
         /* Common code for removing or replacing the video preview */
         _replacePreview: function(newStream) {
@@ -823,11 +864,7 @@ Instant.webrtc = function() {
             Instant.webrtc.ui._replacePreview(null);
             return;
           }
-          var form = $cls('video-type', shareWin);
-          var type = form.elements['type'].value;
-          var audio = (type.indexOf('a') != -1);
-          var video = (type.indexOf('v') != -1);
-          Instant.webrtc.getUserMedia(audio, video).then(function(stream) {
+          Instant.webrtc.ui._getMediaStreamAsync().then(function(stream) {
             // The user could have cancelled the preview in the meantime.
             if (! shareWin.classList.contains('has-preview')) {
               Instant.webrtc.closeMedia(stream);
@@ -837,6 +874,32 @@ Instant.webrtc = function() {
           }).catch(function(err) {
             Instant.errors.showError(err);
           });
+        },
+        /* Start sharing the currently selected video stream */
+        _startSharing: function() {
+          shareWin.classList.add('is-sharing');
+          Instant.webrtc.ui._getMediaStreamAsync().then(function(stream) {
+            if (! shareWin.classList.contains('is-sharing')) {
+              Instant.webrtc.closeStream(stream);
+              return;
+            }
+            shareStream = stream;
+            Instant.webrtc.startSharing('video');
+          }).catch(function(err) {
+            Instant.errors.showError(err);
+          });
+        },
+        /* Stop sharing the currently selected video stream */
+        _stopSharing: function() {
+          shareWin.classList.remove('is-sharing');
+          if (shareStream != null) {
+            Instant.webrtc.closeStream(shareStream);
+            shareStream = null;
+          }
+          if (shareID != null) {
+            Instant.webrtc.stopSharing(shareID);
+            shareID = null;
+          }
         }
       };
     }(),

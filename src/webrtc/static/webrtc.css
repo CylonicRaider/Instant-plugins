@@ -16,7 +16,10 @@
 }
 
 .video-config:not(.has-preview) .hide-preview,
-.video-config.has-preview .show-preview {
+.video-config.has-preview .show-preview,
+.video-config:not(.is-sharing) .update-sharing,
+.video-config:not(.is-sharing) .stop-sharing,
+.video-config.is-sharing .start-sharing {
   display: none;
 }
 .video-config.has-preview .hide-preview {
