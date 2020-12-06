@@ -880,11 +880,11 @@ Instant.webrtc = function() {
           shareWin.classList.add('is-sharing');
           Instant.webrtc.ui._getMediaStreamAsync().then(function(stream) {
             if (! shareWin.classList.contains('is-sharing')) {
-              Instant.webrtc.closeStream(stream);
+              Instant.webrtc.closeMedia(stream);
               return;
             }
             shareStream = stream;
-            Instant.webrtc.startSharing('video');
+            Instant.webrtc.startSharing('video', {});
           }).catch(function(err) {
             Instant.errors.showError(err);
           });
@@ -893,7 +893,7 @@ Instant.webrtc = function() {
         _stopSharing: function() {
           shareWin.classList.remove('is-sharing');
           if (shareStream != null) {
-            Instant.webrtc.closeStream(shareStream);
+            Instant.webrtc.closeMedia(shareStream);
             shareStream = null;
           }
           if (shareID != null) {
