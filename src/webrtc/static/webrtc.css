@@ -9,7 +9,7 @@
   text-align: center;
   margin-top: 5px;
 }
-.video-preview video {
+.video-preview video, .popup.remote-video video {
   max-width: 100%;
   max-height: 10em;
   background: #101010;

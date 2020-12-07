@@ -900,6 +900,16 @@ Instant.webrtc = function() {
             Instant.webrtc.stopSharing(shareID);
             shareID = null;
           }
+        },
+        /* Create a window for receiving incoming video data */
+        _createReceiverWindow: function() {
+          return Instant.popups.windows.make({
+            title: 'Video',
+            className: 'remote-video',
+            content: $makeNode(
+              ['video']
+            )
+          });
         }
       };
     }(),
