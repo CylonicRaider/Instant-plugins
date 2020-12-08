@@ -746,6 +746,8 @@ Instant.webrtc = function() {
       var previewStream = null;
       /* The media stream currently being shared, and its connection ID. */
       var shareStream = null, shareID = null;
+      /* Mapping from peer ID-s to receiver windows */
+      var receiverWindows = {};
       return {
         /* Initialize submodule. */
         init: function() {
@@ -902,14 +904,28 @@ Instant.webrtc = function() {
           }
         },
         /* Create a window for receiving incoming video data */
-        _createReceiverWindow: function() {
-          return Instant.popups.windows.make({
+        _createReceiverWindow: function(peerIdent) {
+          var ret = Instant.popups.windows.make({
             title: 'Video',
             className: 'remote-video',
             content: $makeNode(
               ['video']
             )
           });
+          ret.setAttribute('data-peer', peerIdent);
+          return ret;
+        },
+        /* Create or retrieve a window for receiving incoming video data */
+        _getReceiverWindow: function(peerIdent) {
+          if (receiverWindows[peerIdent] == null) {
+            receiverWindows[peerIdent] =
+              Instant.webrtc.ui._createReceiverWindow(peerIdent);
+          }
+          return receiverWindows[peerIdent];
+        },
+        /* Remove a remove video receiver window again */
+        _removeReceiverWindow: function(peerIdent) {
+          delete receiverWindows[peerIdent];
         }
       };
     }(),
