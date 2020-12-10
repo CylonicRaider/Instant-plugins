@@ -130,8 +130,8 @@ Instant.webrtc = function() {
   var configuration = {};
   /* Connection storage. */
   var connections = {};
-  /* Mapping from connection ID-s to GC deadlines. */
-  var gcDeadlines = {};
+  /* Connection GC tracker. */
+  var connGC = null;
   /* Buffered singaling data. Non-null when there is no (Instant)
    * connection. */
   var signalBuffer = null;
@@ -178,6 +178,9 @@ Instant.webrtc = function() {
         }
       }
       Instant.query.initVerboseFlag(window, 'logInstantWebRTC', 'webrtc');
+      connGC = new Instant.util.GCSet(Instant.webrtc.GC_GRANULARITY,
+        Instant.webrtc.GC_TIMEOUT,
+        Instant.webrtc._removeConnection.bind(Instant.webrtc));
       Instant.connection.addRawHandler('identity', function() {
         return handleIdentity;
       });
@@ -191,8 +194,6 @@ Instant.webrtc = function() {
       Instant.listen('connection.close', function(event) {
         signalBuffer = {};
       });
-      Instant.timers.add(Instant.webrtc._doGC.bind(Instant.webrtc),
-                         Instant.webrtc.GC_GRANULARITY);
       if (Instant.identity.id != null) handleIdentity();
       Instant.webrtc.ui.init();
       Instant.webrtc.chat.init();
@@ -363,29 +364,7 @@ Instant.webrtc = function() {
         conn._close();
       }
       delete connections[connID];
-      delete gcDeadlines[connID];
-    },
-    /* Configure the given connection to be garbage-collected in the future
-     * (if remove is true), or not (otherwise). */
-    _setConnGC: function(connID, remove) {
-      if (! connections[connID]) {
-        /* NOP */
-      } else if (remove) {
-        gcDeadlines[connID] = Date.now() + Instant.webrtc.GC_TIMEOUT;
-      } else {
-        delete gcDeadlines[connID];
-      }
-    },
-    /* Perform a single run of the connection GC. */
-    _doGC: function() {
-      var now = Date.now();
-      for (var connID in gcDeadlines) {
-        if (! gcDeadlines.hasOwnProperty(connID)) continue;
-        var deadline = gcDeadlines[connID];
-        if (deadline <= now) continue;
-        Instant.webrtc._removeConnection(connID);
-      }
-      return Instant.webrtc.GC_GRANULARITY;
+      connGC.drop(connID);
     },
     /* Register the peer with the given identity and (Instant) session ID. */
     _addPeer: function(ident, sid) {
@@ -580,7 +559,7 @@ Instant.webrtc = function() {
         if (msg.type != 'error') return;
         Instant.webrtc._removePeer(peerIdent, receiverSID);
         var connID = Instant.webrtc._calcConnectionID(peerIdent);
-        Instant.webrtc._setConnGC(connID, true);
+        connGC.add(connID);
       }
       // If there is no Instant connection, we buffer signaling messages.
       if (signalBuffer) {
@@ -666,7 +645,7 @@ Instant.webrtc = function() {
           var conn = connections[connID];
           trace(conn.tag, 'Signaling in:', data.data);
           conn._onSignalingInput(data.data);
-          Instant.webrtc._setConnGC(connID, false);
+          connGC.drop(connID);
           break;
         case 'p2p-share': /* Someone is updating their sharing status. */
           if (msg.from == Instant.identity.id) break;
