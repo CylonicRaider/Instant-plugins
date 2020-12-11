@@ -725,8 +725,10 @@ Instant.webrtc = function() {
       var previewStream = null;
       /* The media stream currently being shared, and its connection ID. */
       var shareStream = null, shareID = null;
-      /* Mapping from peer ID-s to receiver windows */
+      /* Mapping from share ID-s to receiver windows. */
       var receiverWindows = {};
+      /* Mapping from remote media stream ID-s to share ID-s. */
+      var remoteStreamShareIDs = {};
       return {
         /* Initialize submodule. */
         init: function() {
@@ -802,7 +804,7 @@ Instant.webrtc = function() {
               var conn = Instant.webrtc.connect(peerIdent);
               conn.extra.sendStream = shareStream;
               shareStream.getTracks().forEach(function(track) {
-                conn.connection.addTrack(track);
+                conn.connection.addTrack(track, shareStream);
               });
             },
             drop: function(share, peerSID) {
@@ -814,6 +816,35 @@ Instant.webrtc = function() {
                 conn.connection.removeTrack(track);
               });
             }
+          });
+          Instant.listen('webrtc.share.newRemote', function(evt) {
+            var desc = evt.data.data;
+            if (desc.type != 'video') return;
+            remoteStreamShareIDs[desc.streamID] = desc.id;
+          });
+          Instant.listen('webrtc.share.delRemote', function(evt) {
+            var desc = evt.data.data;
+            if (desc.type != 'video') return;
+            delete remoteStreamShareIDs[desc.streamID];
+          });
+          Instant.listen('webrtc.conn.open', function(evt) {
+            evt.connection.addEventListener('track', function(e) {
+              if (! e.streams.length) return;
+              var stream = e.streams[0];
+              var success = false;
+              try {
+                var shareID = remoteStreamShareIDs[stream.id];
+                if (! shareID) return;
+                var win = Instant.webrtc.ui._getReceiverWindow(shareID);
+                if ($sel('video', win)) return;
+                success = true;
+                var video = Instant.webrtc.displayMedia(stream);
+                $cls('popup-content', win).appendChild(video);
+                Instant.popups.windows.add(win);
+              } finally {
+                if (! success) Instant.webrtc.closeMedia(stream);
+              }
+            });
           });
         },
         /* Retrieve a media stream matching the current settings */
@@ -865,7 +896,7 @@ Instant.webrtc = function() {
               return;
             }
             shareStream = stream;
-            Instant.webrtc.startSharing('video', {});
+            Instant.webrtc.startSharing('video', {streamID: stream.id});
           }).catch(function(err) {
             Instant.errors.showError(err);
           });
@@ -882,29 +913,26 @@ Instant.webrtc = function() {
             shareID = null;
           }
         },
-        /* Create a window for receiving incoming video data */
-        _createReceiverWindow: function(peerIdent) {
-          var ret = Instant.popups.windows.make({
-            title: 'Video',
-            className: 'remote-video',
-            content: $makeNode(
-              ['video']
-            )
-          });
-          ret.setAttribute('data-peer', peerIdent);
-          return ret;
-        },
-        /* Create or retrieve a window for receiving incoming video data */
-        _getReceiverWindow: function(peerIdent) {
-          if (receiverWindows[peerIdent] == null) {
-            receiverWindows[peerIdent] =
-              Instant.webrtc.ui._createReceiverWindow(peerIdent);
+        /* Create or retrieve a window for receiving incoming video data. */
+        _getReceiverWindow: function(shareID) {
+          if (receiverWindows[shareID] == null) {
+            var win = Instant.popups.windows.make({
+              title: 'Video',
+              className: 'remote-video',
+              onclose: function() {
+                Instant.webrtc.dropRemoteShare(shareID);
+              }
+            });
+            win.setAttribute('data-share-id', shareID);
+            receiverWindows[shareID] = win;
           }
-          return receiverWindows[peerIdent];
+          return receiverWindows[shareID];
         },
-        /* Remove a remove video receiver window again */
-        _removeReceiverWindow: function(peerIdent) {
-          delete receiverWindows[peerIdent];
+        /* Remove a remote video receiver window again.
+         * Closes the window if necessary. */
+        _removeReceiverWindow: function(shareID) {
+          delete receiverWindows[shareID];
+          Instant.popups.windows.del(win);
         }
       };
     }(),
