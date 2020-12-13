@@ -801,7 +801,7 @@ Instant.webrtc = function() {
               if (shareStream == null) return;
               var peerIdent = Instant.webrtc.getPeerIdentity(peerSID);
               if (peerIdent == null) return;
-              var conn = Instant.webrtc.connect(peerIdent);
+              var conn = Instant.webrtc.connectTo(peerIdent);
               conn.extra.sendStream = shareStream;
               shareStream.getTracks().forEach(function(track) {
                 conn.connection.addTrack(track, shareStream);
@@ -828,7 +828,8 @@ Instant.webrtc = function() {
             delete remoteStreamShareIDs[desc.streamID];
           });
           Instant.listen('webrtc.conn.open', function(evt) {
-            evt.connection.addEventListener('track', function(e) {
+            var rtcConn = evt.data.connection.connection;
+            rtcConn.addEventListener('track', function(e) {
               if (! e.streams.length) return;
               var stream = e.streams[0];
               var success = false;
