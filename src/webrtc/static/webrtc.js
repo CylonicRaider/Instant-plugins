@@ -812,8 +812,14 @@ Instant.webrtc = function() {
               if (peerIdent == null) return;
               var conn = Instant.webrtc.getConnectionWith(peerIdent);
               if (conn == null || conn.extra.sendStream == null) return;
+              var tracks = {};
               conn.extra.sendStream.getTracks().forEach(function(track) {
-                conn.connection.removeTrack(track);
+                tracks[track.id] = true;
+              });
+              conn.connection.getSenders().forEach(function(sender) {
+                if (sender.track == null || ! tracks[sender.track.id])
+                  return;
+                conn.connection.removeTrack(sender);
               });
             }
           });
