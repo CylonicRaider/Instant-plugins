@@ -838,19 +838,16 @@ Instant.webrtc = function() {
             rtcConn.addEventListener('track', function(e) {
               if (! e.streams.length) return;
               var stream = e.streams[0];
-              var success = false;
-              try {
-                var shareID = remoteStreamShareIDs[stream.id];
-                if (! shareID) return;
-                var win = Instant.webrtc.ui._getReceiverWindow(shareID);
-                if ($sel('video', win)) return;
-                success = true;
-                var video = Instant.webrtc.displayMedia(stream);
-                $cls('popup-content', win).appendChild(video);
-                Instant.popups.windows.add(win);
-              } finally {
-                if (! success) Instant.webrtc.closeMedia(stream);
+              var shareID = remoteStreamShareIDs[stream.id];
+              if (! shareID) {
+                Instant.webrtc.closeMedia(stream);
+                return;
               }
+              var win = Instant.webrtc.ui._getReceiverWindow(shareID);
+              if ($sel('video', win)) return;
+              var video = Instant.webrtc.displayMedia(stream);
+              $cls('popup-content', win).appendChild(video);
+              Instant.popups.windows.add(win);
             });
           });
         },
