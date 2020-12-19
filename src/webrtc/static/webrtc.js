@@ -286,7 +286,7 @@ Instant.webrtc = function() {
     stopSharing: function(id) {
       var data = localShares[id];
       delete localShares[id];
-      if (! item) return;
+      if (! data) return;
       Instant._fireListeners('webrtc.share.stop', data);
       Instant.connection.sendBroadcast({type: 'p2p-share', remove: [id]});
     },
@@ -670,7 +670,7 @@ Instant.webrtc = function() {
           }
           if (data.remove) {
             data.remove.forEach(function(id) {
-              Instant._removeRemoteShare(peerIdent, id);
+              Instant.webrtc._removeRemoteShare(peerIdent, id);
             });
           }
           break;
@@ -724,7 +724,7 @@ Instant.webrtc = function() {
       /* The media stream currently being previewed. */
       var previewStream = null;
       /* The media stream currently being shared, and its connection ID. */
-      var shareStream = null, shareID = null;
+      var shareStream = null, localShareID = null;
       /* Mapping from share ID-s to receiver windows. */
       var receiverWindows = {};
       /* Mapping from remote media stream ID-s to share ID-s. */
@@ -899,8 +899,15 @@ Instant.webrtc = function() {
               Instant.webrtc.closeMedia(stream);
               return;
             }
+            if (shareStream != null) {
+              Instant.webrtc.closeMedia(shareStream);
+            }
+            if (localShareID != null) {
+              Instant.webrtc.stopSharing(localShareID);
+            }
             shareStream = stream;
-            Instant.webrtc.startSharing('video', {streamID: stream.id});
+            localShareID = Instant.webrtc.startSharing('video',
+                                                       {streamID: stream.id});
           }).catch(function(err) {
             Instant.errors.showError(err);
           });
@@ -912,9 +919,9 @@ Instant.webrtc = function() {
             Instant.webrtc.closeMedia(shareStream);
             shareStream = null;
           }
-          if (shareID != null) {
-            Instant.webrtc.stopSharing(shareID);
-            shareID = null;
+          if (localShareID != null) {
+            Instant.webrtc.stopSharing(localShareID);
+            localShareID = null;
           }
         },
         /* Create or retrieve a window for receiving incoming video data. */
@@ -923,8 +930,9 @@ Instant.webrtc = function() {
             var win = Instant.popups.windows.make({
               title: 'Video',
               className: 'remote-video',
-              onclose: function() {
+              onremove: function() {
                 Instant.webrtc.dropRemoteShare(shareID);
+                Instant.webrtc.ui._removeReceiverWindow(shareID);
               }
             });
             win.setAttribute('data-share-id', shareID);
@@ -935,8 +943,9 @@ Instant.webrtc = function() {
         /* Remove a remote video receiver window again.
          * Closes the window if necessary. */
         _removeReceiverWindow: function(shareID) {
+          var win = receiverWindows[shareID];
           delete receiverWindows[shareID];
-          Instant.popups.windows.del(win);
+          if (win) Instant.popups.windows.del(win);
         }
       };
     }(),
