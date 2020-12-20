@@ -292,7 +292,7 @@ Instant.webrtc = function() {
     },
     /* Request the given remote share. */
     requestRemoteShare: function(id) {
-      var peerIdent = Instant.webrtc._getRemoteSharePeer(id);
+      var peerIdent = Instant.webrtc.getRemoteSharePeer(id);
       if (peerIdent == null) return;
       var peerSID = Instant.webrtc.getPeerSID(peerIdent);
       if (peerSID == null) return;
@@ -300,11 +300,41 @@ Instant.webrtc = function() {
     },
     /* Cancel the request of the given share. */
     dropRemoteShare: function(id) {
-      var peerIdent = Instant.webrtc._getRemoteSharePeer(id);
+      var peerIdent = Instant.webrtc.getRemoteSharePeer(id);
       if (peerIdent == null) return;
       var peerSID = Instant.webrtc.getPeerSID(peerIdent);
       if (peerSID == null) return;
       Instant.connection.send(peerSID, {type: 'p2p-drop-share', id: id});
+    },
+    /* Get the identity of the peer sharing the named resource, or null. */
+    getRemoteSharePeer: function(id) {
+      return remoteShareIndex[id] || null;
+    },
+    /* Return an array of all remote shares that match all given criteria.
+     * Each parameter, if not null, defines a matching criterion:
+     * type      must match the share's type;
+     * peerIdent must match the identity of the peer providing the share;
+     * peerSID   must match the peer's Instant session id;
+     * id        must match the ID of the share itself.
+     * The return value is an (unordered) array of those remote share objects
+     * that match all given criteria.
+     * Consequently, if no criteria are specified, all shares are returned. */
+    queryRemoteShares: function(type, peerIdent, peerSID, id) {
+      var result = [];
+      for (var spi in remoteShares) {
+        if (! remoteShares.hasOwnProperty(spi)) continue;
+        if (peerIdent != null && spi != peerIdent) continue;
+        var spsi = Instant.webrtc.getPeerSID(spi);
+        if (peerSID != null && spsi != peerSID) continue;
+        var collection = remoteShares[spi];
+        for (var sid in collection) {
+          if (! collection.hasOwnProperty(sid)) continue;
+          if (id != null && sid != id) continue;
+          if (type != null && collection[sid].type != type) continue;
+          result.push(collection[sid]);
+        }
+      }
+      return result;
     },
     /* Create a media stream object capturing audio and/or video from the
      * user.
@@ -401,10 +431,6 @@ Instant.webrtc = function() {
       remoteShareIndex[desc.id] = peerIdent;
       Instant._fireListeners('webrtc.share.newRemote', {peer: peerIdent,
                                                         data: desc});
-    },
-    /* Get the identity of the peer sharing the named resource, or null. */
-    _getRemoteSharePeer: function(id) {
-      return remoteShareIndex[id] || null;
     },
     /* Destroy a remote resource share. */
     _removeRemoteShare: function(peerIdent, id) {
