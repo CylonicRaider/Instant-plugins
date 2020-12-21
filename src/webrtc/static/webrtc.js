@@ -320,20 +320,36 @@ Instant.webrtc = function() {
      * that match all given criteria.
      * Consequently, if no criteria are specified, all shares are returned. */
     queryRemoteShares: function(type, peerIdent, peerSID, id) {
-      var result = [];
-      for (var spi in remoteShares) {
-        if (! remoteShares.hasOwnProperty(spi)) continue;
-        if (peerIdent != null && spi != peerIdent) continue;
-        var spsi = Instant.webrtc.getPeerSID(spi);
-        if (peerSID != null && spsi != peerSID) continue;
-        var collection = remoteShares[spi];
-        for (var sid in collection) {
-          if (! collection.hasOwnProperty(sid)) continue;
-          if (id != null && sid != id) continue;
-          if (type != null && collection[sid].type != type) continue;
-          result.push(collection[sid]);
-        }
+      var peerIdents;
+      if (peerIdent != null) {
+        if (! remoteShares[peerIdent] || (peerSID != null &&
+            Instant.webrtc.getPeerSID(peerIdent) != peerSID))
+          return [];
+        peerIdents = [peerIdent];
+      } else if (peerSID != null) {
+        var pi = Instant.webrtc.getPeerIdentity(peerSID);
+        if (pi == null) return [];
+        peerIdents = [pi];
+      } else {
+        peerIdents = Object.getOwnPropertyNames(remoteShares);
       }
+      var result = [];
+      peerIdents.forEach(function(spi) {
+        var shares = remoteShares[spi];
+        var shareIDs = Object.getOwnPropertyNames(shares);
+        if (id != null)
+          shareIDs = shareIDs.filter(function(sid) {
+            return sid == id;
+          });
+        shares = shareIDs.map(function(sid) {
+          return shares[sid];
+        });
+        if (type != null)
+          shares = shares.filter(function(share) {
+            return share.type == type;
+          });
+        result.push.apply(result, shares);
+      });
       return result;
     },
     /* Create a media stream object capturing audio and/or video from the
