@@ -774,6 +774,7 @@ Instant.webrtc = function() {
       return {
         /* Initialize submodule. */
         init: function() {
+          Instant.icons.add('streaming', '/static/streaming.svg');
           shareWin = Instant.popups.windows.make({
             title: 'Video sharing',
             className: 'video-config',
@@ -869,11 +870,13 @@ Instant.webrtc = function() {
             var desc = evt.data.data;
             if (desc.type != 'video') return;
             remoteStreamShareIDs[desc.streamID] = desc.id;
+            Instant.webrtc.ui._addStreamingIcon(evt.data.peer);
           });
           Instant.listen('webrtc.share.delRemote', function(evt) {
             var desc = evt.data.data;
             if (desc.type != 'video') return;
             delete remoteStreamShareIDs[desc.streamID];
+            Instant.webrtc.ui._updateStreamingIcon(evt.data.peer);
           });
           Instant.listen('webrtc.conn.open', function(evt) {
             var rtcConn = evt.data.connection.connection;
@@ -892,6 +895,29 @@ Instant.webrtc = function() {
               Instant.popups.windows.add(win);
             });
           });
+        },
+        /* Install a streaming indicator for the given peer */
+        _addStreamingIcon: function(peerIdent) {
+          var sid = Instant.webrtc.getPeerSID(peerIdent);
+          var node = Instant.userList.get(sid);
+          if (node) node.parentNode.classList.add('has-video');
+          Instant.userList.addIcon(sid, 'streaming');
+        },
+        /* Remove the given peer's streaming indicator */
+        _removeStreamingIcon: function(peerIdent) {
+          var sid = Instant.webrtc.getPeerSID(peerIdent);
+          var node = Instant.userList.get(sid);
+          if (node) node.parentNode.classList.remove('has-video');
+          Instant.userList.removeIcon(sid, 'streaming');
+        },
+        /* Adjust the given peer's streaming icon's visibility */
+        _updateStreamingIcon: function(peerIdent) {
+          var shares = Instant.webrtc.queryRemoteShares('video', peerIdent);
+          if (shares.length) {
+            Instant.webrtc.ui._addStreamingIcon(peerIdent);
+          } else {
+            Instant.webrtc.ui._removeStreamingIcon(peerIdent);
+          }
         },
         /* Retrieve a media stream matching the current settings */
         _getMediaStreamAsync: function() {
