@@ -839,6 +839,22 @@ Instant.webrtc = function() {
                                        function(el) {
             el.addEventListener('change', bup);
           });
+          var menuButton = $makeNode('button', 'button action-show-video',
+                                     'Show stream');
+          menuButton.addEventListener('click', function(evt) {
+            var wrapperNode = evt.target.parentNode.parentNode;
+            if (! wrapperNode.classList.contains('has-video')) return;
+            var peerSID = wrapperNode.firstChild.getAttribute('data-id');
+            var peerIdent = Instant.webrtc.getPeerIdentity(peerSID);
+            if (! peerIdent) return;
+            var shares = Instant.webrtc.queryRemoteShares('video', peerIdent);
+            if (! shares.length) return;
+            shares.forEach(function(share) {
+              Instant.webrtc.requestRemoteShare(share.id);
+            });
+            Instant.userList.showMenu(null);
+          });
+          Instant.userList.addMenuNode($makeFrag(' ', menuButton));
           Instant.webrtc.registerShareType('video', {
             get: function(share, peerSID) {
               if (shareStream == null) return;
