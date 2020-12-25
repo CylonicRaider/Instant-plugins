@@ -33,6 +33,7 @@
 
 .p2p-chat-popup .message-pane {
   width: auto;
+  height: auto;
   overflow-y: auto;
   margin: -5px;
 }
