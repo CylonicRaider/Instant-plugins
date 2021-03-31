@@ -1,2 +1,9 @@
 
 /* Instant game plugin stylesheet */
+
+.game-error {
+  background: rgba(255, 0, 0, 0.125);
+  color: #ff0000;
+  font-style: italic;
+  padding: 0 2px;
+}
