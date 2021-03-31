@@ -1,0 +1,5 @@
+
+Name: Instant-Plugin
+Frontend-Plugin: yes
+Frontend-styles: /static/games/games.css
+Frontend-libs: /static/games/games.js
