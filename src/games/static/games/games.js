@@ -2,22 +2,29 @@
 /* Instant game plugin code */
 
 this.InstantGames = function() {
-  var GAME_URL_RE = /^game:([a-zA-Z0-9_-]+)\/([0-9a-fA-F,-]+)(?:[?#].*)?$/;
+  var GAME_URI_RE =
+    /^game:([a-zA-Z0-9_-]+)\/([0-9a-fA-F,-]+)(?:\?([^#]*))?$/;
 
-  function Game(embedInfo, name, players) {
+  function Game(embedInfo, name, players, params) {
     this.embedInfo = embedInfo;
     this.name = name;
     this.players = players;
+    this.params = params;
     this.node = this.embedInfo.node;
+    this.playerInfo = this.players.map(function(uuid, index) {
+      return {uuid: uuid, name: this.params['p' + index + 'n']};
+    }.bind(this));
   }
   Game.prototype = {
     REQUIRED_PLAYERS: null,
-    _onInput: function(text, player) {
+    _onInput: function(text, playerID, live) {
       var m = /^([a-zA-Z0-9_-]+)(?:\s+([^]*))?$/.exec(text);
       if (! m) return;
-      this.onInput(m[1], m[2] || '');
+      var idx = this.players.indexOf(playerID);
+      if (idx == -1) idx = null;
+      this.onInput(idx, m[1], m[2] || '', live);
     },
-    onInput: function(command, value, live) {
+    onInput: function(playerIndex, command, value, live) {
       /* should be overridden */
       return null;
     },
@@ -35,14 +42,47 @@ this.InstantGames = function() {
     }
   };
 
+  function TwoPlayerGame(embedInfo, name, players, params) {
+    Game.call(this, embedInfo, name, players, params);
+    this.playerInfo.forEach(function(item) {
+      item.score = 0;
+    });
+  }
+  TwoPlayerGame.prototype = Object.create(Game.prototype);
+  TwoPlayerGame.prototype.REQUIRED_PLAYERS = 2;
+  TwoPlayerGame.prototype.renderInitial = function() {
+    function makeNickNode(pi) {
+      return (pi.name == null) ? Instant.nick.makeAnonymous() :
+        Instant.nick.makeNode(pi.name);
+    }
+    this.node.appendChild($makeNode('div', 'game-header', [
+      makeNickNode(this.playerInfo[0]),
+      ['span', 'separator', ' '],
+      ['span', 'score score-0', '0'],
+      ['span', 'separator', ' '],
+      ['span', 'score', ':'],
+      ['span', 'separator', ' '],
+      ['span', 'score score-1', '0'],
+      ['span', 'separator', ' '],
+      makeNickNode(this.playerInfo[1])
+    ]));
+  };
+  TwoPlayerGame.prototype.addScore = function(index, points) {
+    this.playerInfo[index].score += points;
+    $sel('.game-header .score-' + index, this.node).textContent =
+      this.playerInfo[index].score;
+  };
+
   var InstantGames = {
+    Game: Game,
+    TwoPlayerGame: TwoPlayerGame,
     games: {},
-    register: function(name, data) {
-      function RegisteredGame(embedInfo, name, players) {
-        Game.call(this, embedInfo, name, players);
+    register: function(name, superConstructor, data) {
+      function RegisteredGame(embedInfo, name, players, params) {
+        superConstructor.call(this, embedInfo, name, players, params);
         this.init();
       }
-      RegisteredGame.prototype = Object.create(Game.prototype);
+      RegisteredGame.prototype = Object.create(superConstructor.prototype);
       for (var prop in data) {
         if (! data.hasOwnProperty(prop)) continue;
         RegisteredGame.prototype[prop] = data[prop];
@@ -51,9 +91,9 @@ this.InstantGames = function() {
     }
   };
 
-  Instant.message.embeds.addEmbedder(GAME_URL_RE, function(url) {
-    var m = GAME_URL_RE.exec(url);
-    var gameName = m[1], players = m[2];
+  Instant.message.embeds.addEmbedder(GAME_URI_RE, function(url) {
+    var m = GAME_URI_RE.exec(url);
+    var gameName = m[1], players = m[2], params = m[3] || '';
     var splitPlayers = players.split(',');
     if (! splitPlayers.every(Boolean)) {
       return $makeNode('span', 'game-error', [
@@ -69,13 +109,14 @@ this.InstantGames = function() {
       return $makeNode('span', 'game-error',
                        'Exactly ' + needPlayers + ' required');
     return $makeNode('div', 'game-content', {'data-name': gameName,
-      'data-players': players});
+      'data-players': players, 'data-params': params});
   }, {active: 'game', onInit: function(embed) {
     var name = embed.node.getAttribute('data-name');
     if (! name) return;
     var GameClass = InstantGames.games[name];
-    embed.game = new GameClass(embed,
-      embed.node.getAttribute('data-players').split(','));
+    embed.game = new GameClass(embed, name,
+      embed.node.getAttribute('data-players').split(','),
+      $query(embed.node.getAttribute('data-params')));
     embed.game.renderInitial();
   }, onData: function(embed, info) {
     if (! embed.game) return;
@@ -84,7 +125,13 @@ this.InstantGames = function() {
   }});
 
   Instant.plugins.mailbox('games.register').handle(function(data) {
-    InstantGames.register(data.NAME, data);
+    var superConstructor = data.EXTENDS;
+    if (superConstructor == null) {
+      superConstructor = Game;
+    } else if (typeof superConstructor == 'string') {
+      superConstructor = InstantGames[superConstructor];
+    }
+    InstantGames.register(data.NAME, superConstructor, data);
   });
 
   return InstantGames;

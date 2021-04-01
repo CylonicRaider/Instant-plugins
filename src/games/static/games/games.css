@@ -7,3 +7,43 @@
   font-style: italic;
   padding: 0 2px;
 }
+
+.game-content {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  width: 320px;
+  height: 240px;
+  padding: 2px;
+}
+.game-header {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-align-items: baseline;
+  align-items: baseline;
+  margin-bottom: 1px;
+  border-bottom: 1px solid #808080;
+  padding-bottom: 1px;
+  white-space: pre;
+}
+.game-header .nick {
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.game-header .score {
+  font-weight: bold;
+}
+.game-header .score-0, .game-header .score-1 {
+  -webkit-flex-grow: 1;
+  -webkit-flex-shrink: 0;
+  flex-grow: 1;
+  flex-shrink: 0;
+}
+.game-header .score-0 {
+  text-align: right;
+}
+.game-header .score-1 {
+  text-align: left;
+}
