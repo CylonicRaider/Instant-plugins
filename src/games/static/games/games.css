@@ -47,10 +47,10 @@
 .game-header .score-1 {
   text-align: left;
 }
-.game-header[data-turn="0"] .name-0 {
+.game-root[data-turn="0"] .game-header .name-0 {
   font-weight: bold;
 }
-.game-header[data-turn="1"] .name-1 {
+.game-root[data-turn="1"] .game-header .name-1 {
   font-weight: bold;
 }
 .game-body {
@@ -112,4 +112,49 @@
 .game-root-popCont button {
   -webkit-align-self: center;
   align-self: center;
+}
+
+.game-root-tictactoe .game-header img {
+  height: 1em;
+  -webkit-align-self: center;
+  align-self: center;
+  opacity: 0.5;
+}
+.game-root-tictactoe .filler {
+  -webkit-flex: 1 0px;
+  flex: 1 0px;
+}
+.game-root-tictactoe table {
+  border-collapse: collapse;
+  border-style: hidden;
+}
+.game-root-tictactoe td {
+  border: 1px solid black;
+  width: 3em;
+  height: 3em;
+}
+.game-root-tictactoe td button {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.game-root-tictactoe td img {
+  display: none;
+}
+.game-root-tictactoe td:not([data-filled]) {
+  opacity: 0.5;
+}
+.game-root-tictactoe[data-turn="0"] table.is-crosses td:not([data-filled]) button:hover img.cross,
+.game-root-tictactoe[data-turn="0"] table.is-crosses td:not([data-filled]) button:focus img.cross,
+.game-root-tictactoe[data-turn="1"] table.is-noughts td:not([data-filled]) button:hover img.nought,
+.game-root-tictactoe[data-turn="1"] table.is-noughts td:not([data-filled]) button:focus img.nought,
+.game-root-tictactoe td[data-filled=x] img.cross,
+.game-root-tictactoe td[data-filled=o] img.nought {
+  display: block;
+}
+.game-root-tictactoe .another-game {
+  margin-top: 0.5em;
+}
+.game-root-tictactoe .another-game[disabled] {
+  border-color: #808080;
 }

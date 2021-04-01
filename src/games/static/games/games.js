@@ -14,6 +14,7 @@ this.InstantGames = function() {
     this.playerInfo = this.players.map(function(uuid, index) {
       return {uuid: uuid, name: this.params['p' + index + 'n']};
     }.bind(this));
+    this.turn = null;
   }
   Game.prototype = {
     DISPLAY_NAME: null,
@@ -34,6 +35,7 @@ this.InstantGames = function() {
     },
     setTurn: function(playerIndex) {
       /* overridden by TwoPlayerGame; may be overridden by others */
+      this.turn = playerIndex;
     },
     _onInput: function(userID, text, live) {
       var m = /^([a-zA-Z0-9_-]+)(?:\s+([^]*))?$/.exec(text);
@@ -58,11 +60,11 @@ this.InstantGames = function() {
   TwoPlayerGame.prototype = Object.create(Game.prototype);
   TwoPlayerGame.prototype.REQUIRED_PLAYERS = 2;
   TwoPlayerGame.prototype.setTurn = function(playerIndex) {
-    var header = $cls('game-header', this.node);
+    Game.prototype.setTurn.call(this, playerIndex);
     if (playerIndex == null) {
-      header.removeAttribute('data-turn');
+      this.node.removeAttribute('data-turn');
     } else {
-      header.setAttribute('data-turn', playerIndex);
+      this.node.setAttribute('data-turn', playerIndex);
     }
   };
   TwoPlayerGame.prototype.render = function() {
@@ -235,5 +237,142 @@ InstantGames.register('popCont', InstantGames.TwoPlayerGame, {
     if (this.voted[Instant.identity.uuid]) return;
     var uuid = this.playerInfo[index].uuid;
     this.send('vote', uuid);
+  }
+});
+
+InstantGames.register('tictactoe', InstantGames.TwoPlayerGame, {
+  DISPLAY_NAME: 'Tic-tac-toe',
+  LINES: [
+    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+    [0, 4, 8], [2, 4, 6]
+  ],
+  init: function() {
+    this.cells = [null, null, null,
+                  null, null, null,
+                  null, null, null];
+    this.restarter = null;
+  },
+  getRole: function(playerIndex) {
+    return (playerIndex == 0) ? 'x' : (playerIndex == 1) ? 'o' : '';
+  },
+  getSelfRole: function() {
+    return this.getRole(this.getSelfIndex());
+  },
+  render: function() {
+    function makeCellContents() {
+      if (selfRole) {
+        return [['button', 'button button-noborder', [
+          crossNode.cloneNode(true),
+          noughtNode.cloneNode(true)
+        ]]];
+      } else {
+        return [
+          crossNode.cloneNode(true),
+          noughtNode.cloneNode(true)
+        ];
+      }
+    }
+    InstantGames.TwoPlayerGame.prototype.render.call(this);
+    var crossNode = $makeNode('img', 'cross',
+      {src: '/static/games/cross.svg', alt: 'x'});
+    var noughtNode = $makeNode('img', 'nought',
+      {src: '/static/games/nought.svg', alt: 'o'});
+    var name0 = $cls('name-0', this.node);
+    name0.parentNode.insertBefore(crossNode.cloneNode(true),
+                                  name0.nextSibling);
+    var name1 = $cls('name-1', this.node);
+    name1.parentNode.insertBefore(noughtNode.cloneNode(true), name1);
+    var selfIndex = this.getSelfIndex();
+    var selfRole = this.getRole(selfIndex);
+    var tcls = {x: 'is-crosses', o: 'is-noughts', '': ''}[selfRole];
+    $cls('game-body', this.node).appendChild($makeFrag(
+      ['div', 'filler'],
+      ['table', tcls, [
+        ['tr', [
+          ['td', 'cell', {'data-cell': '0'}, makeCellContents()],
+          ['td', 'cell', {'data-cell': '1'}, makeCellContents()],
+          ['td', 'cell', {'data-cell': '2'}, makeCellContents()]
+        ]],
+        ['tr', [
+          ['td', 'cell', {'data-cell': '3'}, makeCellContents()],
+          ['td', 'cell', {'data-cell': '4'}, makeCellContents()],
+          ['td', 'cell', {'data-cell': '5'}, makeCellContents()]
+        ]],
+        ['tr', [
+          ['td', 'cell', {'data-cell': '6'}, makeCellContents()],
+          ['td', 'cell', {'data-cell': '7'}, makeCellContents()],
+          ['td', 'cell', {'data-cell': '8'}, makeCellContents()]
+        ]]
+      ]],
+      ['button', 'button another-game', {disabled: 'disabled'},
+        ['Another game']],
+      ['div', 'filler']
+    ));
+    $sel('table', this.node).addEventListener('click', function(event) {
+      if (selfIndex != this.turn) return;
+      var curCellNode = $parentWithClass(event.target, 'cell');
+      if (! curCellNode) return;
+      var curCell = parseInt(curCellNode.getAttribute('data-cell'));
+      if (this.cells[curCell] != null) return;
+      this.send('move', selfRole + curCell);
+    }.bind(this));
+    $cls('another-game', this.node).addEventListener('click', function(e) {
+      if (this.restarter == null || selfIndex != this.restarter) return;
+      this.send('restart');
+    }.bind(this));
+    this.setTurn(0);
+  },
+  onInput: function(userID, command, value, live) {
+    var index = this.getPlayerIndex(userID);
+    switch (command) {
+      case 'move':
+        if (index != this.turn) break;
+        if (!/^[xo][0-8]$/.test(value)) break;
+        if (value[0] != this.getRole(index)) break;
+        var cell = parseInt(value[1]);
+        if (this.cells[cell] != null) break;
+        this.cells[cell] = value[0];
+        $sel('[data-cell="' + cell + '"]', this.node)
+          .setAttribute('data-filled', value[0]);
+        if (this.isOver(cell)) {
+          this.addScore(index, 1);
+        } else if (this.isMaybeDraw()) {
+          /* NOP */
+        } else {
+          this.setTurn(1 - this.turn);
+          break;
+        }
+        this.restarter = 1 - index;
+        this.setTurn(null);
+        if (this.getSelfIndex() == this.restarter) {
+          $cls('another-game', this.node).disabled = false;
+        }
+        break;
+      case 'restart':
+        if (this.restarter == null || index != this.restarter) return;
+        this.restart(this.restarter);
+        break;
+    }
+  },
+  isOver: function(cell) {
+    var self = this, expectedValue = this.cells[cell];
+    return this.LINES.some(function(line) {
+      return line.indexOf(cell) != -1 && line.every(function(cell) {
+        return (self.cells[cell] == expectedValue);
+      });
+    });
+  },
+  isMaybeDraw: function() {
+    return this.cells.every(function(cell) { return cell != null; });
+  },
+  restart: function(startWith) {
+    for (var i = 0; i < 9; i++) this.cells[i] = null;
+    this.restarter = null;
+    Array.prototype.forEach.call($selAll('.cell', this.node), function(cell) {
+      cell.removeAttribute('data-filled');
+    });
+    $cls('another-game', this.node).disabled = true;
+    this.setTurn(startWith);
   }
 });
