@@ -65,3 +65,51 @@
   -webkit-flex-grow: 1;
   flex-grow: 1;
 }
+
+.game-root-popCont .game-body {
+  -webkit-flex-direction: row;
+  -webkit-align-items: stretch;
+  flex-direction: row;
+  align-items: stretch;
+}
+.game-root-popCont .column {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  flex-direction: column;
+  min-width: 0;
+  -webkit-flex: 1 0px;
+  flex: 1 0px;
+}
+.game-root-popCont hr {
+  -webkit-align-self: stretch;
+  align-self: stretch;
+  margin: 0 2px;
+  border: none;
+  border-left: 1px solid gray;
+}
+.game-root-popCont .header {
+  font-style: italic;
+}
+.game-root-popCont .header-0 {
+  text-align: left;
+}
+.game-root-popCont .header-1 {
+  text-align: right;
+}
+.game-root-popCont .proposal {
+  -webkit-flex: 1 0px;
+  flex: 1 0px;
+  margin: 2px 0;
+  overflow: auto;
+}
+.game-root-popCont textarea {
+  resize: none;
+  border: none;
+  box-shadow: 0 0 2px #808080;
+  font: inherit;
+}
+.game-root-popCont button {
+  -webkit-align-self: center;
+  align-self: center;
+}

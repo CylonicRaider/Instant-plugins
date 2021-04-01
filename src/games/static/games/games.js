@@ -161,3 +161,79 @@ this.InstantGames = function() {
 
   return InstantGames;
 }();
+
+InstantGames.register('popCont', InstantGames.TwoPlayerGame, {
+  DISPLAY_NAME: 'Popularity Contest',
+  init: function() {
+    this.proposalSent = {};
+    this.voted = {};
+  },
+  render: function() {
+    InstantGames.TwoPlayerGame.prototype.render.call(this);
+    var index = this.getSelfIndex();
+    $cls('game-body', this.node).appendChild($makeFrag(
+      ['div', 'column', (index == 0) ? [
+        ['span', 'header header-0', 'Your proposal:'],
+        ['textarea', 'proposal proposal-0'],
+        ['button', 'button vote vote-0', 'Vote']
+      ] : [
+        ['div', 'header header-0', '\u2026proposes:'],
+        ['div', 'proposal proposal-0'],
+        ['button', 'button vote vote-0', 'Vote']
+      ]],
+      ['hr'],
+      ['div', 'column', (index == 1) ? [
+        ['span', 'header header-1', 'Your proposal:'],
+        ['textarea', 'proposal proposal-1'],
+        ['button', 'button vote vote-1', 'Vote']
+      ] : [
+        ['div', 'header header-1', '\u2026proposes:'],
+        ['div', 'proposal proposal-1'],
+        ['button', 'button vote vote-1', 'Vote']
+      ]]
+    ));
+    var myProposal = $sel('textarea.proposal', this.node);
+    if (myProposal)
+      myProposal.addEventListener('keydown', function(event) {
+        if (! this.proposalSent[this.getSelfIndex()] && event.keyCode == 13)
+          this.send('proposal', myProposal.value);
+      }.bind(this));
+    $cls('vote-0', this.node).addEventListener('click',
+                                               this.onVote.bind(this, 0));
+    $cls('vote-1', this.node).addEventListener('click',
+                                               this.onVote.bind(this, 1));
+  },
+  onInput: function(userID, command, value, live) {
+    var index = this.getPlayerIndex(userID);
+    switch (command) {
+      case 'proposal':
+        if (this.proposalSent[index]) break;
+        this.proposalSent[index] = true;
+        var proposalNode = $cls('proposal-' + index, this.node);
+        if (proposalNode.nodeName == 'TEXTAREA') {
+          var newProposalNode = $makeNode('div', proposalNode.className);
+          proposalNode.parentNode.insertBefore(newProposalNode, proposalNode);
+          proposalNode.parentNode.removeChild(proposalNode);
+          proposalNode = newProposalNode;
+        }
+        proposalNode.textContent = value;
+        break;
+      case 'vote':
+        if (this.voted[userID]) break;
+        var index = this.getPlayerIndex(value);
+        if (index == null) break;
+        this.addScore(index, 1);
+        this.voted[userID] = true;
+        if (userID == Instant.identity.uuid) {
+          $cls('vote-0', this.node).disabled = true;
+          $cls('vote-1', this.node).disabled = true;
+        }
+        break;
+    }
+  },
+  onVote: function(index) {
+    if (this.voted[Instant.identity.uuid]) return;
+    var uuid = this.playerInfo[index].uuid;
+    this.send('vote', uuid);
+  }
+});
