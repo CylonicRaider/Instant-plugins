@@ -115,7 +115,8 @@ this.InstantGames = function() {
     if (! name) return;
     var GameClass = InstantGames.games[name];
     embed.game = new GameClass(embed, name,
-      embed.node.getAttribute('data-players').split(','),
+      embed.node.getAttribute('data-players').split(',')
+        .map(decodeURIComponent),
       $query(embed.node.getAttribute('data-params')));
     embed.game.renderInitial();
   }, onData: function(embed, info) {
