@@ -17,6 +17,9 @@ this.InstantGames = function() {
   }
   Game.prototype = {
     REQUIRED_PLAYERS: null,
+    init: function() {
+      /* should be overridden */
+    },
     getPlayerIndex: function(uuid) {
       var idx = this.players.indexOf(uuid);
       if (idx == -1) idx = null;
@@ -25,8 +28,11 @@ this.InstantGames = function() {
     getSelfIndex: function() {
       return this.getPlayerIndex(Instant.identity.uuid);
     },
-    setTurn: function(index) {
+    render: function() {
       /* should be overridden */
+    },
+    setTurn: function(playerIndex) {
+      /* overridden by TwoPlayerGame; may be overridden by others */
     },
     _onInput: function(userID, text, live) {
       var m = /^([a-zA-Z0-9_-]+)(?:\s+([^]*))?$/.exec(text);
@@ -39,13 +45,7 @@ this.InstantGames = function() {
     send: function(command, value) {
       if (value == null) value = '';
       this.embedInfo.send(command + ((value) ? ' ' : '') + value);
-    },
-    init: function() {
-      /* should be overridden */
-    },
-    render: function() {
-      /* should be overridden */
-    },
+    }
   };
 
   function TwoPlayerGame(embedInfo, name, players, params) {
@@ -56,12 +56,12 @@ this.InstantGames = function() {
   }
   TwoPlayerGame.prototype = Object.create(Game.prototype);
   TwoPlayerGame.prototype.REQUIRED_PLAYERS = 2;
-  TwoPlayerGame.prototype.setTurn = function(index) {
+  TwoPlayerGame.prototype.setTurn = function(playerIndex) {
     var header = $cls('game-header', this.node);
-    if (index == null) {
+    if (playerIndex == null) {
       header.removeAttribute('data-turn');
     } else {
-      header.setAttribute('data-turn', index);
+      header.setAttribute('data-turn', playerIndex);
     }
   };
   TwoPlayerGame.prototype.render = function() {
