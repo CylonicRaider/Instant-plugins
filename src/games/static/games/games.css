@@ -8,7 +8,7 @@
   padding: 0 2px;
 }
 
-.game-content {
+.game-root {
   display: -webkit-flex;
   display: flex;
   -webkit-flex-direction: column;
@@ -46,4 +46,22 @@
 }
 .game-header .score-1 {
   text-align: left;
+}
+.game-header[data-turn="0"] .name-0 {
+  font-weight: bold;
+}
+.game-header[data-turn="1"] .name-1 {
+  font-weight: bold;
+}
+.game-body {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-direction: column;
+  -webkit-align-items: center;
+  -webkit-justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  -webkit-flex-grow: 1;
+  flex-grow: 1;
 }

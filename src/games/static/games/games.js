@@ -17,6 +17,14 @@ this.InstantGames = function() {
   }
   Game.prototype = {
     REQUIRED_PLAYERS: null,
+    getSelfIndex: function() {
+      var idx = this.players.indexOf(Instant.identity.uuid);
+      if (idx == -1) idx = null;
+      return idx;
+    },
+    setTurn: function(index) {
+      /* should be overridden */
+    },
     _onInput: function(text, playerID, live) {
       var m = /^([a-zA-Z0-9_-]+)(?:\s+([^]*))?$/.exec(text);
       if (! m) return;
@@ -29,6 +37,7 @@ this.InstantGames = function() {
       return null;
     },
     send: function(command, value) {
+      if (value == null) value = '';
       this.embedInfo.send(command + ((value) ? ' ' : '') + value);
     },
     init: function() {
@@ -50,22 +59,39 @@ this.InstantGames = function() {
   }
   TwoPlayerGame.prototype = Object.create(Game.prototype);
   TwoPlayerGame.prototype.REQUIRED_PLAYERS = 2;
+  TwoPlayerGame.prototype.setTurn = function(index) {
+    var header = $cls('game-header', this.node);
+    if (index == null) {
+      header.removeAttribute('data-turn');
+    } else {
+      header.setAttribute('data-turn', index);
+    }
+  };
   TwoPlayerGame.prototype.renderInitial = function() {
     function makeNickNode(pi) {
       return (pi.name == null) ? Instant.nick.makeAnonymous() :
         Instant.nick.makeNode(pi.name);
     }
-    this.node.appendChild($makeNode('div', 'game-header', [
-      makeNickNode(this.playerInfo[0]),
-      ['span', 'separator', ' '],
-      ['span', 'score score-0', '0'],
-      ['span', 'separator', ' '],
-      ['span', 'score', ':'],
-      ['span', 'separator', ' '],
-      ['span', 'score score-1', '0'],
-      ['span', 'separator', ' '],
-      makeNickNode(this.playerInfo[1])
-    ]));
+    this.node.appendChild($makeFrag(
+      ['div', 'game-header', [
+        makeNickNode(this.playerInfo[0]),
+        ['span', 'separator', ' '],
+        ['span', 'score score-0', '0'],
+        ['span', 'separator', ' '],
+        ['span', 'score', ':'],
+        ['span', 'separator', ' '],
+        ['span', 'score score-1', '0'],
+        ['span', 'separator', ' '],
+        makeNickNode(this.playerInfo[1])
+      ]],
+      ['div', 'game-body']
+    ));
+    var nicks = $clsAll('nick', this.node);
+    nicks[0].classList.add('name-0');
+    nicks[1].classList.add('name-1');
+    this.node.addEventListener('click', function(event) {
+      event.stopPropagation();
+    });
   };
   TwoPlayerGame.prototype.addScore = function(index, points) {
     this.playerInfo[index].score += points;
@@ -108,8 +134,9 @@ this.InstantGames = function() {
     if (needPlayers != null && splitPlayers.length != needPlayers)
       return $makeNode('span', 'game-error',
                        'Exactly ' + needPlayers + ' required');
-    return $makeNode('div', 'game-content', {'data-name': gameName,
-      'data-players': players, 'data-params': params});
+    return $makeNode('div', 'game-root game-root-' + gameName,
+                     {'data-name': gameName, 'data-players': players,
+                      'data-params': params});
   }, {active: 'game', onInit: function(embed) {
     var name = embed.node.getAttribute('data-name');
     if (! name) return;
