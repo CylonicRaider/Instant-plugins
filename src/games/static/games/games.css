@@ -109,7 +109,7 @@
   box-shadow: 0 0 2px #808080;
   font: inherit;
 }
-.game-root-popCont button {
+.game-root-popCont button, .game-root-popCont .button-row {
   -webkit-align-self: center;
   align-self: center;
 }

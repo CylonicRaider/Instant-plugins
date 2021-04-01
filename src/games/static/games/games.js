@@ -177,7 +177,11 @@ InstantGames.register('popCont', InstantGames.TwoPlayerGame, {
       ['div', 'column', (index == 0) ? [
         ['span', 'header header-0', 'Your proposal:'],
         ['textarea', 'proposal proposal-0'],
-        ['button', 'button vote vote-0', 'Vote']
+        ['div', 'button-row', [
+          ['button', 'button submit', 'Submit'],
+          ' ',
+          ['button', 'button vote vote-0', 'Vote']
+        ]]
       ] : [
         ['div', 'header header-0', '\u2026proposes:'],
         ['div', 'proposal proposal-0'],
@@ -187,7 +191,11 @@ InstantGames.register('popCont', InstantGames.TwoPlayerGame, {
       ['div', 'column', (index == 1) ? [
         ['span', 'header header-1', 'Your proposal:'],
         ['textarea', 'proposal proposal-1'],
-        ['button', 'button vote vote-1', 'Vote']
+        ['div', 'button-row', [
+          ['button', 'button submit', 'Submit'],
+          ' ',
+          ['button', 'button vote vote-1', 'Vote']
+        ]]
       ] : [
         ['div', 'header header-1', '\u2026proposes:'],
         ['div', 'proposal proposal-1'],
@@ -195,11 +203,17 @@ InstantGames.register('popCont', InstantGames.TwoPlayerGame, {
       ]]
     ));
     var myProposal = $sel('textarea.proposal', this.node);
-    if (myProposal)
+    if (myProposal) {
       myProposal.addEventListener('keydown', function(event) {
-        if (! this.proposalSent[this.getSelfIndex()] && event.keyCode == 13)
+        if (! this.proposalSent[this.getSelfIndex()] && event.keyCode == 13 &&
+            ! event.shiftKey)
           this.send('proposal', myProposal.value);
       }.bind(this));
+      $cls('submit', this.node).addEventListener('click', function(e) {
+        if (! this.proposalSent[this.getSelfIndex()])
+          this.send('proposal', myProposal.value);
+      }.bind(this));
+    }
     $cls('vote-0', this.node).addEventListener('click',
                                                this.onVote.bind(this, 0));
     $cls('vote-1', this.node).addEventListener('click',
@@ -217,6 +231,10 @@ InstantGames.register('popCont', InstantGames.TwoPlayerGame, {
           proposalNode.parentNode.insertBefore(newProposalNode, proposalNode);
           proposalNode.parentNode.removeChild(proposalNode);
           proposalNode = newProposalNode;
+          var proposalButton = $cls('submit', this.node);
+          if (proposalButton) {
+            proposalButton.disabled = true;
+          }
         }
         proposalNode.textContent = value;
         break;
