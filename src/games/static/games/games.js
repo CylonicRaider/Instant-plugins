@@ -17,24 +17,24 @@ this.InstantGames = function() {
   }
   Game.prototype = {
     REQUIRED_PLAYERS: null,
-    getSelfIndex: function() {
-      var idx = this.players.indexOf(Instant.identity.uuid);
+    getPlayerIndex: function(uuid) {
+      var idx = this.players.indexOf(uuid);
       if (idx == -1) idx = null;
       return idx;
+    },
+    getSelfIndex: function() {
+      return this.getPlayerIndex(Instant.identity.uuid);
     },
     setTurn: function(index) {
       /* should be overridden */
     },
-    _onInput: function(text, playerID, live) {
+    _onInput: function(userID, text, live) {
       var m = /^([a-zA-Z0-9_-]+)(?:\s+([^]*))?$/.exec(text);
       if (! m) return;
-      var idx = this.players.indexOf(playerID);
-      if (idx == -1) idx = null;
-      this.onInput(idx, m[1], m[2] || '', live);
+      this.onInput(userID, m[1], (m[2] || '').trim(), live);
     },
-    onInput: function(playerIndex, command, value, live) {
+    onInput: function(userID, command, value, live) {
       /* should be overridden */
-      return null;
     },
     send: function(command, value) {
       if (value == null) value = '';
@@ -43,12 +43,9 @@ this.InstantGames = function() {
     init: function() {
       /* should be overridden */
     },
-    renderInitial: function() {
+    render: function() {
       /* should be overridden */
     },
-    renderUpdate: function(update) {
-      /* should be overridden */
-    }
   };
 
   function TwoPlayerGame(embedInfo, name, players, params) {
@@ -67,7 +64,7 @@ this.InstantGames = function() {
       header.setAttribute('data-turn', index);
     }
   };
-  TwoPlayerGame.prototype.renderInitial = function() {
+  TwoPlayerGame.prototype.render = function() {
     function makeNickNode(pi) {
       return (pi.name == null) ? Instant.nick.makeAnonymous() :
         Instant.nick.makeNode(pi.name);
@@ -145,11 +142,10 @@ this.InstantGames = function() {
       embed.node.getAttribute('data-players').split(',')
         .map(decodeURIComponent),
       $query(embed.node.getAttribute('data-params')));
-    embed.game.renderInitial();
+    embed.game.render();
   }, onData: function(embed, info) {
     if (! embed.game) return;
-    var update = embed.game._onInput(info.text, info.fromUUID, info.live);
-    if (update != null) embed.game.renderUpdate(update);
+    embed.game._onInput(info.fromUUID, info.text, info.live);
   }});
 
   Instant.plugins.mailbox('games.register').handle(function(data) {
