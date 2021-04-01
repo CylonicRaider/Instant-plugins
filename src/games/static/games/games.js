@@ -16,6 +16,7 @@ this.InstantGames = function() {
     }.bind(this));
   }
   Game.prototype = {
+    DISPLAY_NAME: null,
     REQUIRED_PLAYERS: null,
     init: function() {
       /* should be overridden */
