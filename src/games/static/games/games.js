@@ -297,10 +297,13 @@ InstantGames.register('tictactoe', InstantGames.TwoPlayerGame, {
     var noughtNode = $makeNode('img', 'nought',
       {src: '/static/games/nought.svg', alt: 'o'});
     var name0 = $cls('name-0', this.node);
-    name0.parentNode.insertBefore(crossNode.cloneNode(true),
-                                  name0.nextSibling);
+    var ind0 = crossNode.cloneNode(true);
+    ind0.classList.add('turn-indicator-0');
+    name0.parentNode.insertBefore(ind0, name0.nextSibling);
     var name1 = $cls('name-1', this.node);
-    name1.parentNode.insertBefore(noughtNode.cloneNode(true), name1);
+    var ind1 = noughtNode.cloneNode(true);
+    ind1.classList.add('turn-indicator-1');
+    name1.parentNode.insertBefore(ind1, name1);
     var selfIndex = this.getSelfIndex();
     var selfRole = this.getRole(selfIndex);
     var tcls = {x: 'is-crosses', o: 'is-noughts', '': ''}[selfRole];

@@ -47,9 +47,11 @@
 .game-header .score-1 {
   text-align: left;
 }
-.game-root[data-turn="0"] .game-header .name-0 {
-  font-weight: bold;
+.game-root:not([data-turn="0"]) .game-header .turn-indicator-0,
+.game-root:not([data-turn="1"]) .game-header .turn-indicator-1 {
+  opacity: 0.5;
 }
+.game-root[data-turn="0"] .game-header .name-0,
 .game-root[data-turn="1"] .game-header .name-1 {
   font-weight: bold;
 }
@@ -118,7 +120,6 @@
   height: 1em;
   -webkit-align-self: center;
   align-self: center;
-  opacity: 0.5;
 }
 .game-root-tictactoe .filler {
   -webkit-flex: 1 0px;
