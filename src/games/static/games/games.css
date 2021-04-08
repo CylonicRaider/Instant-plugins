@@ -47,6 +47,16 @@
 .game-header .score-1 {
   text-align: left;
 }
+.game-root.default-turn-inidcators .game-header .turn-indicator {
+  display: block;
+  width: 0.75em;
+  height: 0.75em;
+  border-radius: 50%;
+  background: black;
+  margin: 0 1px;
+  -webkit-align-self: center;
+  align-self: center;
+}
 .game-root:not([data-turn="0"]) .game-header .turn-indicator-0,
 .game-root:not([data-turn="1"]) .game-header .turn-indicator-1 {
   opacity: 0.5;

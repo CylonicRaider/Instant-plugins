@@ -130,11 +130,14 @@ this.InstantGames = function() {
       return $makeNode('span', 'game-error', [
         'Unknown game ', ['code', 'monospace', [$text(gameName)]]
       ]);
-    var needPlayers = InstantGames.games[gameName].prototype.REQUIRED_PLAYERS;
+    var gameProto = InstantGames.games[gameName].prototype;
+    var needPlayers = gameProto.REQUIRED_PLAYERS;
     if (needPlayers != null && splitPlayers.length != needPlayers)
       return $makeNode('span', 'game-error',
                        'Exactly ' + needPlayers + ' required');
-    return $makeNode('div', 'game-root game-root-' + gameName,
+    var className = 'game-root game-root-' + gameName;
+    if (gameProto.CSS_CLASS) className += ' ' + gameProto.CSS_CLASS;
+    return $makeNode('div', className,
                      {'data-name': gameName, 'data-players': players,
                       'data-params': params});
   }, {active: 'game', onInit: function(embed) {
