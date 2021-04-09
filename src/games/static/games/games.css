@@ -163,6 +163,9 @@
 .game-root-tictactoe td[data-filled=o] img.nought {
   display: block;
 }
+.game-root-tictactoe td.no-highlight img {
+  opacity: 0.666;
+}
 .game-root-tictactoe .another-game {
   margin-top: 0.5em;
 }

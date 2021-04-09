@@ -359,7 +359,9 @@ InstantGames.register('tictactoe', InstantGames.TwoPlayerGame, {
         this.cells[cell] = value[0];
         $sel('[data-cell="' + cell + '"]', this.node)
           .setAttribute('data-filled', value[0]);
-        if (this.isOver(cell)) {
+        var witness = this.isOver(cell);
+        if (witness) {
+          this.highlightCells(witness);
           this.addScore(index, 1);
         } else if (this.isMaybeDraw()) {
           /* NOP */
@@ -381,20 +383,43 @@ InstantGames.register('tictactoe', InstantGames.TwoPlayerGame, {
   },
   isOver: function(cell) {
     var self = this, expectedValue = this.cells[cell];
-    return this.LINES.some(function(line) {
-      return line.indexOf(cell) != -1 && line.every(function(cell) {
+    var won = null;
+    this.LINES.some(function(line) {
+      if (line.indexOf(cell) != -1 && line.every(function(cell) {
         return (self.cells[cell] == expectedValue);
-      });
+      })) {
+        won = line;
+        return true;
+      }
     });
+    return won;
   },
   isMaybeDraw: function() {
     return this.cells.every(function(cell) { return cell != null; });
+  },
+  highlightCells: function(indices) {
+    var highlights = [false, false, false,
+                      false, false, false,
+                      false, false, false];
+    indices.forEach(function(idx) { highlights[idx] = true; });
+    Array.prototype.forEach.call($selAll('.cell', this.node),
+      function(cell, index) {
+        if (highlights[index]) {
+          cell.classList.add('highlight');
+          cell.classList.remove('no-highlight');
+        } else {
+          cell.classList.remove('highlight');
+          cell.classList.add('no-highlight');
+        }
+      });
   },
   restart: function(startWith) {
     for (var i = 0; i < 9; i++) this.cells[i] = null;
     this.restarter = null;
     Array.prototype.forEach.call($selAll('.cell', this.node), function(cell) {
       cell.removeAttribute('data-filled');
+      cell.classList.remove('highlight');
+      cell.classList.remove('no-highlight');
     });
     $cls('another-game', this.node).disabled = true;
     this.setTurn(startWith);
