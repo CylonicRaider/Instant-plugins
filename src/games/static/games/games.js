@@ -14,6 +14,7 @@ this.InstantGames = function() {
     this.playerInfo = this.players.map(function(uuid, index) {
       return {uuid: uuid, name: this.params['p' + index + 'n']};
     }.bind(this));
+    this.selfIndex = this.getPlayerIndex(Instant.identity.uuid);
     this.turn = null;
   }
   Game.prototype = {
@@ -27,15 +28,14 @@ this.InstantGames = function() {
       if (idx == -1) idx = null;
       return idx;
     },
-    getSelfIndex: function() {
-      return this.getPlayerIndex(Instant.identity.uuid);
-    },
     render: function() {
       /* should be overridden */
     },
-    setTurn: function(playerIndex) {
+    setTurn: function(playerIndex, live) {
       /* overridden by TwoPlayerGame; may be overridden by others */
       this.turn = playerIndex;
+      if (playerIndex == this.selfIndex && live)
+        this.embedInfo.raiseAttention('Your turn');
     },
     _onInput: function(userID, text, live) {
       var m = /^([a-zA-Z0-9_-]+)(?:\s+([^]*))?$/.exec(text);
@@ -59,8 +59,8 @@ this.InstantGames = function() {
   }
   TwoPlayerGame.prototype = Object.create(Game.prototype);
   TwoPlayerGame.prototype.REQUIRED_PLAYERS = 2;
-  TwoPlayerGame.prototype.setTurn = function(playerIndex) {
-    Game.prototype.setTurn.call(this, playerIndex);
+  TwoPlayerGame.prototype.setTurn = function(playerIndex, live) {
+    Game.prototype.setTurn.call(this, playerIndex, live);
     if (playerIndex == null) {
       this.node.removeAttribute('data-turn');
     } else {
@@ -175,9 +175,8 @@ InstantGames.register('popCont', InstantGames.TwoPlayerGame, {
   },
   render: function() {
     InstantGames.TwoPlayerGame.prototype.render.call(this);
-    var index = this.getSelfIndex();
     $cls('game-body', this.node).appendChild($makeFrag(
-      ['div', 'column', (index == 0) ? [
+      ['div', 'column', (this.selfIndex == 0) ? [
         ['span', 'header header-0', 'Your proposal:'],
         ['textarea', 'proposal proposal-0'],
         ['div', 'button-row', [
@@ -191,7 +190,7 @@ InstantGames.register('popCont', InstantGames.TwoPlayerGame, {
         ['button', 'button vote vote-0', 'Vote']
       ]],
       ['hr'],
-      ['div', 'column', (index == 1) ? [
+      ['div', 'column', (this.selfIndex == 1) ? [
         ['span', 'header header-1', 'Your proposal:'],
         ['textarea', 'proposal proposal-1'],
         ['div', 'button-row', [
@@ -208,12 +207,12 @@ InstantGames.register('popCont', InstantGames.TwoPlayerGame, {
     var myProposal = $sel('textarea.proposal', this.node);
     if (myProposal) {
       myProposal.addEventListener('keydown', function(event) {
-        if (! this.proposalSent[this.getSelfIndex()] && event.keyCode == 13 &&
+        if (! this.proposalSent[this.selfIndex] && event.keyCode == 13 &&
             ! event.shiftKey)
           this.send('proposal', myProposal.value);
       }.bind(this));
       $cls('submit', this.node).addEventListener('click', function(e) {
-        if (! this.proposalSent[this.getSelfIndex()])
+        if (! this.proposalSent[this.selfIndex])
           this.send('proposal', myProposal.value);
       }.bind(this));
     }
@@ -278,7 +277,7 @@ InstantGames.register('tictactoe', InstantGames.TwoPlayerGame, {
     return (playerIndex == 0) ? 'x' : (playerIndex == 1) ? 'o' : '';
   },
   getSelfRole: function() {
-    return this.getRole(this.getSelfIndex());
+    return this.getRole(this.selfIndex);
   },
   render: function() {
     function makeCellContents() {
@@ -307,7 +306,7 @@ InstantGames.register('tictactoe', InstantGames.TwoPlayerGame, {
     var ind1 = noughtNode.cloneNode(true);
     ind1.classList.add('turn-indicator-1');
     name1.parentNode.insertBefore(ind1, name1);
-    var selfIndex = this.getSelfIndex();
+    var selfIndex = this.selfIndex;
     var selfRole = this.getRole(selfIndex);
     var tcls = {x: 'is-crosses', o: 'is-noughts', '': ''}[selfRole];
     $cls('game-body', this.node).appendChild($makeFrag(
@@ -366,18 +365,18 @@ InstantGames.register('tictactoe', InstantGames.TwoPlayerGame, {
         } else if (this.isMaybeDraw()) {
           /* NOP */
         } else {
-          this.setTurn(1 - this.turn);
+          this.setTurn(1 - this.turn, live);
           break;
         }
         this.restarter = 1 - index;
         this.setTurn(null);
-        if (this.getSelfIndex() == this.restarter) {
+        if (this.selfIndex == this.restarter) {
           $cls('another-game', this.node).disabled = false;
         }
         break;
       case 'restart':
         if (this.restarter == null || index != this.restarter) return;
-        this.restart(this.restarter);
+        this.restart(this.restarter, live);
         break;
     }
   },
@@ -413,7 +412,7 @@ InstantGames.register('tictactoe', InstantGames.TwoPlayerGame, {
         }
       });
   },
-  restart: function(startWith) {
+  restart: function(startWith, live) {
     for (var i = 0; i < 9; i++) this.cells[i] = null;
     this.restarter = null;
     Array.prototype.forEach.call($selAll('.cell', this.node), function(cell) {
@@ -422,6 +421,6 @@ InstantGames.register('tictactoe', InstantGames.TwoPlayerGame, {
       cell.classList.remove('no-highlight');
     });
     $cls('another-game', this.node).disabled = true;
-    this.setTurn(startWith);
+    this.setTurn(startWith, live);
   }
 });
