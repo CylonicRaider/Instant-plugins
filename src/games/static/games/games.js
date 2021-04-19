@@ -12,7 +12,7 @@ this.InstantGames = function() {
     this.params = params;
     this.node = this.embedInfo.node;
     this.playerInfo = this.players.map(function(uuid, index) {
-      return {uuid: uuid, name: this.params['p' + index + 'n']};
+      return {uuid: uuid, name: this.params['p' + index + 'n'], score: 0};
     }.bind(this));
     this.selfIndex = this.getPlayerIndex(Instant.identity.uuid);
     this.turn = null;
@@ -32,10 +32,19 @@ this.InstantGames = function() {
       /* should be overridden */
     },
     setTurn: function(playerIndex, live) {
-      /* overridden by TwoPlayerGame; may be overridden by others */
+      /* overridden by TwoPlayerGame */
       this.turn = playerIndex;
       if (playerIndex == this.selfIndex && live)
         this.embedInfo.raiseAttention('Your turn');
+    },
+    addScore: function(playerIndex, points) {
+      /* overridden by TwoPlayerGame */
+      this.playerInfo[playerIndex].score += points;
+    },
+    registerWin: function(playerIndex, addPoints) {
+      if (playerIndex != null && addPoints)
+        this.addScore(playerIndex, addPoints);
+      this.setTurn(null);
     },
     _onInput: function(userID, text, live) {
       var m = /^([a-zA-Z0-9_-]+)(?:\s+([^]*))?$/.exec(text);
@@ -53,9 +62,6 @@ this.InstantGames = function() {
 
   function TwoPlayerGame(embedInfo, name, players, params) {
     Game.call(this, embedInfo, name, players, params);
-    this.playerInfo.forEach(function(item) {
-      item.score = 0;
-    });
   }
   TwoPlayerGame.prototype = Object.create(Game.prototype);
   TwoPlayerGame.prototype.REQUIRED_PLAYERS = 2;
@@ -93,10 +99,10 @@ this.InstantGames = function() {
       event.stopPropagation();
     });
   };
-  TwoPlayerGame.prototype.addScore = function(index, points) {
-    this.playerInfo[index].score += points;
-    $sel('.game-header .score-' + index, this.node).textContent =
-      this.playerInfo[index].score;
+  TwoPlayerGame.prototype.addScore = function(playerIndex, points) {
+    Game.prototype.addScore.call(this, playerIndex, points);
+    $sel('.game-header .score-' + playerIndex, this.node).textContent =
+      this.playerInfo[playerIndex].score;
   };
 
   var InstantGames = {
@@ -361,18 +367,16 @@ InstantGames.register('tictactoe', InstantGames.TwoPlayerGame, {
         var witness = this.isOver(cell);
         if (witness) {
           this.highlightCells(witness);
-          this.addScore(index, 1);
+          this.registerWin(index, 1);
         } else if (this.isMaybeDraw()) {
-          /* NOP */
+          this.registerWin(null);
         } else {
           this.setTurn(1 - this.turn, live);
           break;
         }
         this.restarter = 1 - index;
-        this.setTurn(null);
-        if (this.selfIndex == this.restarter) {
+        if (this.selfIndex == this.restarter)
           $cls('another-game', this.node).disabled = false;
-        }
         break;
       case 'restart':
         if (this.restarter == null || index != this.restarter) return;
