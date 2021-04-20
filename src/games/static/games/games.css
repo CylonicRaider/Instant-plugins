@@ -17,15 +17,23 @@
   height: 240px;
   padding: 2px;
 }
-.game-header {
+.game-header, .player-header {
   display: -webkit-flex;
   display: flex;
   -webkit-align-items: baseline;
   align-items: baseline;
+  white-space: pre;
+}
+.game-header {
   margin-bottom: 1px;
   border-bottom: 1px solid #808080;
   padding-bottom: 1px;
-  white-space: pre;
+}
+.player-header {
+  -webkit-flex-basis: 0;
+  -webkit-flex-grow: 1;
+  flex-basis: 0;
+  flex-grow: 1;
 }
 .game-header .nick {
   white-space: pre;

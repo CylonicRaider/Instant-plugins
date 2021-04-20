@@ -80,15 +80,17 @@ this.InstantGames = function() {
     }
     this.node.appendChild($makeFrag(
       ['div', 'game-header', [
-        makeNickNode(this.playerInfo[0]),
-        ['span', 'separator', ' '],
-        ['span', 'score score-0', '0'],
-        ['span', 'separator', ' '],
-        ['span', 'score', ':'],
-        ['span', 'separator', ' '],
-        ['span', 'score score-1', '0'],
-        ['span', 'separator', ' '],
-        makeNickNode(this.playerInfo[1])
+        ['span', 'player-header player-header-0', [
+          makeNickNode(this.playerInfo[0]),
+          ['span', 'separator', ' '],
+          ['span', 'score score-0', '0']
+        ]],
+        ['span', 'score', ' : '],
+        ['span', 'player-header player-header-1', [
+          ['span', 'score score-1', '0'],
+          ['span', 'separator', ' '],
+          makeNickNode(this.playerInfo[1])
+        ]]
       ]],
       ['div', 'game-body']
     ));
