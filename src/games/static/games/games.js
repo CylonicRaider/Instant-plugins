@@ -65,6 +65,7 @@ this.InstantGames = function() {
   }
   TwoPlayerGame.prototype = Object.create(Game.prototype);
   TwoPlayerGame.prototype.REQUIRED_PLAYERS = 2;
+  TwoPlayerGame.prototype.HAS_TURNS = false;
   TwoPlayerGame.prototype.setTurn = function(playerIndex, live) {
     Game.prototype.setTurn.call(this, playerIndex, live);
     if (playerIndex == null) {
@@ -78,10 +79,13 @@ this.InstantGames = function() {
       return (pi.name == null) ? Instant.nick.makeAnonymous() :
         Instant.nick.makeNode(pi.name);
     }
+    indicators = (this.HAS_TURNS) ? this.renderTurnIndicators() :
+                                    [null, null];
     this.node.appendChild($makeFrag(
       ['div', 'game-header', [
         ['span', 'player-header player-header-0', [
           makeNickNode(this.playerInfo[0]),
+          indicators[0],
           ['span', 'separator', ' '],
           ['span', 'score score-0', '0']
         ]],
@@ -89,6 +93,7 @@ this.InstantGames = function() {
         ['span', 'player-header player-header-1', [
           ['span', 'score score-1', '0'],
           ['span', 'separator', ' '],
+          indicators[1],
           makeNickNode(this.playerInfo[1])
         ]]
       ]],
@@ -100,6 +105,10 @@ this.InstantGames = function() {
     this.node.addEventListener('click', function(event) {
       event.stopPropagation();
     });
+  };
+  TwoPlayerGame.prototype.renderTurnIndicators = function() {
+    return [$makeNode('span', 'turn-indicator turn-indicator-0'),
+            $makeNode('span', 'turn-indicator turn-indicator-1')];
   };
   TwoPlayerGame.prototype.addScore = function(playerIndex, points) {
     Game.prototype.addScore.call(this, playerIndex, points);
@@ -270,6 +279,7 @@ InstantGames.register('popCont', InstantGames.TwoPlayerGame, {
 
 InstantGames.register('tictactoe', InstantGames.TwoPlayerGame, {
   DISPLAY_NAME: 'Tic-tac-toe',
+  HAS_TURNS: true,
   LINES: [
     [0, 1, 2], [3, 4, 5], [6, 7, 8],
     [0, 3, 6], [1, 4, 7], [2, 5, 8],
@@ -301,19 +311,13 @@ InstantGames.register('tictactoe', InstantGames.TwoPlayerGame, {
         ];
       }
     }
-    InstantGames.TwoPlayerGame.prototype.render.call(this);
     var crossNode = $makeNode('img', 'cross',
       {src: '/static/games/cross.svg', alt: 'x'});
     var noughtNode = $makeNode('img', 'nought',
       {src: '/static/games/nought.svg', alt: 'o'});
-    var name0 = $cls('name-0', this.node);
-    var ind0 = crossNode.cloneNode(true);
-    ind0.classList.add('turn-indicator-0');
-    name0.parentNode.insertBefore(ind0, name0.nextSibling);
-    var name1 = $cls('name-1', this.node);
-    var ind1 = noughtNode.cloneNode(true);
-    ind1.classList.add('turn-indicator-1');
-    name1.parentNode.insertBefore(ind1, name1);
+    this._crossNode = crossNode;
+    this._noughtNode = noughtNode;
+    InstantGames.TwoPlayerGame.prototype.render.call(this);
     var selfIndex = this.selfIndex;
     var selfRole = this.getRole(selfIndex);
     var tcls = {x: 'is-crosses', o: 'is-noughts', '': ''}[selfRole];
@@ -353,6 +357,13 @@ InstantGames.register('tictactoe', InstantGames.TwoPlayerGame, {
       this.send('restart');
     }.bind(this));
     this.setTurn(0);
+  },
+  renderTurnIndicators: function() {
+    var ind0 = this._crossNode.cloneNode(true);
+    ind0.classList.add('turn-indicator-0');
+    var ind1 = this._noughtNode.cloneNode(true);
+    ind1.classList.add('turn-indicator-1');
+    return [ind0, ind1];
   },
   onInput: function(userID, command, value, live) {
     var index = this.getPlayerIndex(userID);

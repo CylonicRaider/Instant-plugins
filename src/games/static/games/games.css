@@ -55,7 +55,7 @@
 .game-header .score-1 {
   text-align: left;
 }
-.game-root.default-turn-inidcators .game-header .turn-indicator {
+.game-root .game-header .turn-indicator {
   display: block;
   width: 0.75em;
   height: 0.75em;
