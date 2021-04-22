@@ -55,6 +55,14 @@
 .game-header .score-1 {
   text-align: left;
 }
+.game-root[data-won="0"] .game-header .score-0,
+.game-root[data-won="1"] .game-header .score-1 {
+  color: #008000;
+}
+.game-root[data-won="0"] .game-header .score-1,
+.game-root[data-won="1"] .game-header .score-0 {
+  color: #c00000;
+}
 .game-root .game-header .turn-indicator {
   display: block;
   width: 0.75em;

@@ -31,6 +31,9 @@ this.InstantGames = function() {
     render: function() {
       /* should be overridden */
     },
+    resetUI: function() {
+      /* should be overriden */
+    },
     setTurn: function(playerIndex, live) {
       /* overridden by TwoPlayerGame */
       this.turn = playerIndex;
@@ -106,6 +109,10 @@ this.InstantGames = function() {
       event.stopPropagation();
     });
   };
+  TwoPlayerGame.prototype.resetUI = function() {
+    Game.prototype.resetUI.call(this);
+    this.node.removeAttribute("data-won");
+  };
   TwoPlayerGame.prototype.renderTurnIndicators = function() {
     return [$makeNode('span', 'turn-indicator turn-indicator-0'),
             $makeNode('span', 'turn-indicator turn-indicator-1')];
@@ -114,6 +121,14 @@ this.InstantGames = function() {
     Game.prototype.addScore.call(this, playerIndex, points);
     $sel('.game-header .score-' + playerIndex, this.node).textContent =
       this.playerInfo[playerIndex].score;
+  };
+  TwoPlayerGame.prototype.registerWin = function(playerIndex, addPoints) {
+    Game.prototype.registerWin.call(this, playerIndex, addPoints);
+    if (playerIndex != null) {
+      this.node.setAttribute("data-won", playerIndex);
+    } else {
+      this.node.removeAttribute("data-won");
+    }
   };
 
   var InstantGames = {
@@ -397,6 +412,15 @@ InstantGames.register('tictactoe', InstantGames.TwoPlayerGame, {
         break;
     }
   },
+  resetUI: function() {
+    InstantGames.TwoPlayerGame.prototype.resetUI.call(this);
+    Array.prototype.forEach.call($selAll('.cell', this.node), function(cell) {
+      cell.removeAttribute('data-filled');
+      cell.classList.remove('highlight');
+      cell.classList.remove('no-highlight');
+    });
+    $cls('another-game', this.node).disabled = true;
+  },
   isOver: function(cell) {
     var self = this, expectedValue = this.cells[cell];
     var won = null;
@@ -432,12 +456,7 @@ InstantGames.register('tictactoe', InstantGames.TwoPlayerGame, {
   restart: function(startWith, live) {
     for (var i = 0; i < 9; i++) this.cells[i] = null;
     this.restarter = null;
-    Array.prototype.forEach.call($selAll('.cell', this.node), function(cell) {
-      cell.removeAttribute('data-filled');
-      cell.classList.remove('highlight');
-      cell.classList.remove('no-highlight');
-    });
-    $cls('another-game', this.node).disabled = true;
+    this.resetUI();
     this.setTurn(startWith, live);
   }
 });
