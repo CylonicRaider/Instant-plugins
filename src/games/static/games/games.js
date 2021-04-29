@@ -49,12 +49,12 @@ this.InstantGames = function() {
         this.addScore(playerIndex, addPoints);
       this.setTurn(null);
     },
-    _onInput: function(userID, text, live) {
+    _onInput: function(userID, text, info) {
       var m = /^([a-zA-Z0-9_-]+)(?:\s+([^]*))?$/.exec(text);
       if (! m) return;
-      this.onInput(userID, m[1], (m[2] || '').trim(), live);
+      this.onInput(userID, m[1], (m[2] || '').trim(), info);
     },
-    onInput: function(userID, command, value, live) {
+    onInput: function(userID, command, value, info) {
       /* should be overridden */
     },
     send: function(command, value) {
@@ -183,7 +183,7 @@ this.InstantGames = function() {
     embed.game.render();
   }, onData: function(embed, info) {
     if (! embed.game) return;
-    embed.game._onInput(info.fromUUID, info.text, info.live);
+    embed.game._onInput(info.fromUUID, info.text, info);
   }});
 
   Instant.plugins.mailbox('games.register').handle(function(data) {
@@ -253,7 +253,7 @@ InstantGames.register('popCont', InstantGames.TwoPlayerGame, {
     $cls('vote-1', this.node).addEventListener('click',
                                                this.onVote.bind(this, 1));
   },
-  onInput: function(userID, command, value, live) {
+  onInput: function(userID, command, value, info) {
     var index = this.getPlayerIndex(userID);
     switch (command) {
       case 'proposal':
@@ -380,7 +380,7 @@ InstantGames.register('tictactoe', InstantGames.TwoPlayerGame, {
     ind1.classList.add('turn-indicator-1');
     return [ind0, ind1];
   },
-  onInput: function(userID, command, value, live) {
+  onInput: function(userID, command, value, info) {
     var index = this.getPlayerIndex(userID);
     switch (command) {
       case 'move':
@@ -399,7 +399,7 @@ InstantGames.register('tictactoe', InstantGames.TwoPlayerGame, {
         } else if (this.isMaybeDraw()) {
           this.registerWin(null);
         } else {
-          this.setTurn(1 - this.turn, live);
+          this.setTurn(1 - this.turn, info.live);
           break;
         }
         this.restarter = 1 - index;
@@ -408,7 +408,7 @@ InstantGames.register('tictactoe', InstantGames.TwoPlayerGame, {
         break;
       case 'restart':
         if (this.restarter == null || index != this.restarter) return;
-        this.restart(this.restarter, live);
+        this.restart(this.restarter, info.live);
         break;
     }
   },
