@@ -185,6 +185,3 @@
 .game-root-tictactoe .another-game {
   margin-top: 0.5em;
 }
-.game-root-tictactoe .another-game[disabled] {
-  border-color: #808080;
-}
