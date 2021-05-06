@@ -257,7 +257,7 @@ InstantGames.register('popCont', InstantGames.TwoPlayerGame, {
     var index = this.getPlayerIndex(userID);
     switch (command) {
       case 'proposal':
-        if (this.proposalSent[index]) break;
+        if (index == null || this.proposalSent[index]) break;
         this.proposalSent[index] = true;
         var proposalNode = $cls('proposal-' + index, this.node);
         if (proposalNode.nodeName == 'TEXTAREA') {
@@ -274,9 +274,9 @@ InstantGames.register('popCont', InstantGames.TwoPlayerGame, {
         break;
       case 'vote':
         if (this.voted[userID]) break;
-        var index = this.getPlayerIndex(value);
-        if (index == null) break;
-        this.addScore(index, 1);
+        var voteIndex = this.getPlayerIndex(value);
+        if (voteIndex == null) break;
+        this.addScore(voteIndex, 1);
         this.voted[userID] = true;
         if (userID == Instant.identity.uuid) {
           $cls('vote-0', this.node).disabled = true;
