@@ -460,3 +460,185 @@ InstantGames.register('tictactoe', InstantGames.TwoPlayerGame, {
     this.setTurn(startWith, live);
   }
 });
+
+InstantGames.register('chicken', InstantGames.TwoPlayerGame, {
+  DISPLAY_NAME: 'Chicken',
+  TIMEOUT: 10000, // Milliseconds.
+  STATUSES: {
+    pending : ['Pending...', '#800080'],
+    ready   : ['Ready'     , '#008080'],
+    standing: ['Standing'  , '#808000'],
+    chicken : ['Chicken!'  , '#c00000'],
+    loser   : ['Loser'     , '#c00000'],
+    winner  : ['Winner'    , '#008000']
+  },
+  init: function() {
+    this.stage = 'waiting';
+    this.overAt = null;
+    this.playerStatuses = [null, null];
+    this.playersReady = [null, null];
+    this.playersYielded = [null, null];
+    this.playersDone = [false, false];
+  },
+  render: function() {
+    InstantGames.TwoPlayerGame.prototype.render.call(this);
+    var body = $cls('game-body', this.node);
+    body.appendChild($makeFrag(
+      ['table', 'info-table', [
+        ['tr', [
+          ['td', null, 'Status'],
+          ['td', null, 'Over in'],
+          ['td', null, 'Status']
+        ]],
+        ['tr', [
+          ['td', 'status-0', 'N/A'],
+          ['td', [['i', 'over-in', 'N/A']]],
+          ['td', 'status-1', 'N/A']
+        ]]
+      ]],
+      ['div', 'button-row', [
+        ['button', 'button ready', {disabled: 'disabled'}, 'Ready'],
+        ' ',
+        ['button', 'button yield', {disabled: 'disabled'}, 'Yield']
+      ]]
+    ));
+    if (this.selfIndex != null) {
+      var readyBtn = $cls('ready', body), yieldBtn = $cls('yield', body);
+      readyBtn.addEventListener('click', function(evt) {
+        if (readyBtn.disabled || this.playersReady[this.selfIndex] != null)
+          return;
+        this.send('ready');
+      }.bind(this));
+      yieldBtn.addEventListener('click', function(evt) {
+        if (yieldBtn.disabled || this.playersYielded[this.selfIndex] != null)
+          return;
+        this.send('yield');
+      }.bind(this));
+      readyBtn.disabled = false;
+    }
+    this.setPlayerStatus(0, 'pending');
+    this.setPlayerStatus(1, 'pending');
+  },
+  setPlayerStatus: function(index, tag) {
+    this.playerStatuses[index] = tag;
+    var node = $cls('status-' + index, this.node);
+    var descriptor = this.STATUSES[tag];
+    node.textContent = descriptor[0];
+    node.style.color = descriptor[1];
+    if (tag == 'ready') {
+      if (index == this.selfIndex) {
+        $cls('ready', this.node).disabled = true;
+      }
+      if (this.stage == 'waiting' && this.playersReady[0] != null &&
+          this.playersReady[1] != null) {
+        this.stage = 'playing';
+        this.overAt = Math.max(this.playersReady[0], this.playersReady[1]) +
+          this.TIMEOUT;
+        this.startTimer();
+        this.setPlayerStatus(0, 'standing');
+        this.setPlayerStatus(1, 'standing');
+      }
+    }
+    if (tag == 'standing' && index == this.selfIndex) {
+      $cls('yield', this.node).disabled = false;
+    }
+    if (tag == 'chicken' && index == this.selfIndex) {
+      $cls('yield', this.node).disabled = true;
+    }
+  },
+  getYieldCount: function() {
+    var ret = 0;
+    this.playersYielded.forEach(function(item) {
+      if (item != null) ret++;
+    });
+    return ret;
+  },
+  onInput: function(userID, command, value, info) {
+    var index = this.getPlayerIndex(userID);
+    if (index == null) return;
+    switch (command) {
+      case 'ready':
+        if (this.stage != 'waiting' ||
+            this.playersReady[index] != null)
+          return;
+        this.playersReady[index] =
+          Instant.util.serverTimeToLocalTime(info.timestamp);
+        this.setPlayerStatus(index, 'ready');
+        break;
+      case 'yield':
+        if (this.stage != 'playing' ||
+            this.playersYielded[index] != null)
+          return;
+        this.playersYielded[index] =
+          Instant.util.serverTimeToLocalTime(info.timestamp);
+        this.setPlayerStatus(index, 'chicken');
+        break;
+      case 'concede': case 'claim':
+        if (this.stage != 'playing' || this.playersDone[index])
+          return;
+        var yieldCount = this.getYieldCount();
+        if (command == 'concede' && (this.playersYielded[index] != null ||
+                                     yieldCount == 0)) {
+          this.playersDone[index] = true;
+          if (this.playerStatuses[index] == 'standing')
+            this.setPlayerStatus(index, 'loser');
+        } else if (command == 'claim' && this.playersYielded[index] == null &&
+                   yieldCount == 1) {
+          this.playersDone[index] = true;
+          this.setPlayerStatus(index, 'winner');
+        }
+        this.maybeConclude();
+        break;
+    }
+  },
+  startTimer: function(live) {
+    function update() {
+      var remaining = Math.max(this.overAt - Date.now(), 0);
+      timerNode.textContent = remaining + 'ms';
+      if (remaining > 0) {
+        requestAnimationFrame(callback);
+      } else if (! done) {
+        done = true;
+        this.finishTimer(this.overAt, isLive);
+      }
+    }
+    var callback = update.bind(this);
+    var timerNode = $cls('over-in', this.node);
+    var done = false;
+    callback();
+    var remaining = this.overAt - Date.now();
+    var isLive = false;
+    if (remaining > 0) {
+      isLive = true;
+      setTimeout(callback, remaining);
+    }
+  },
+  finishTimer: function(cookie, live) {
+    if (this.selfIndex == null) return;
+    setTimeout(function() {
+      if (this.stage != 'playing' || this.overAt != cookie ||
+          this.playersDone[this.selfIndex]) {
+        /* NOP */
+      } else if (this.getYieldCount() == 0 ||
+                 this.playersYielded[this.selfIndex] != null) {
+        this.send('concede');
+      } else {
+        this.send('claim');
+      }
+    }.bind(this), (live) ? 0 : 1000);
+  },
+  maybeConclude: function() {
+    if (! this.playersDone[0] || ! this.playersDone[1]) {
+      return;
+    } else if (this.playerStatuses[0] == 'winner') {
+      this.registerWin(0, 2);
+    } else if (this.playerStatuses[1] == 'winner') {
+      this.registerWin(1, 2);
+    } else if (this.playerStatuses[0] == 'chicken' &&
+               this.playerStatuses[1] == 'chicken') {
+      this.addScore(0, 1);
+      this.addScore(1, 1);
+    }
+    $cls('yield', this.node).disabled = true;
+  }
+});

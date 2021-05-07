@@ -185,3 +185,20 @@
 .game-root-tictactoe .another-game {
   margin-top: 0.5em;
 }
+
+.game-root-chicken table {
+  border-collapse: collapse;
+  border-style: hidden;
+}
+.game-root-chicken td {
+  border: 1px solid black;
+  padding: 2px;
+  text-align: center;
+  width: 100px;
+}
+.game-root-chicken .status-0, .game-root-chicken .status-1 {
+  font-weight: bold;
+}
+.game-root-chicken .button-row {
+  margin-top: 5px;
+}
