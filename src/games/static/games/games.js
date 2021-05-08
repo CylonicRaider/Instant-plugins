@@ -469,7 +469,7 @@ InstantGames.register('chicken', InstantGames.TwoPlayerGame, {
     ready   : ['Ready'     , '#008080'],
     standing: ['Standing'  , '#808000'],
     chicken : ['Chicken!'  , '#c00000'],
-    loser   : ['Loser'     , '#c00000'],
+    loser   : ['Loser'     , '#404040'],
     winner  : ['Winner'    , '#008000']
   },
   init: function() {
@@ -558,12 +558,18 @@ InstantGames.register('chicken', InstantGames.TwoPlayerGame, {
     if (index == null) return;
     switch (command) {
       case 'ready':
-        if (this.stage != 'waiting' ||
+        if ((this.stage != 'waiting' && this.stage != 'restarting') ||
             this.playersReady[index] != null)
           return;
         this.playersReady[index] =
           Instant.util.serverTimeToLocalTime(info.timestamp);
         this.setPlayerStatus(index, 'ready');
+        if (this.stage == 'restarting') {
+          this.resetUI();
+          this.stage = 'waiting';
+          $cls('over-in', this.node).textContent = 'N/A';
+          this.setPlayerStatus(1 - index, 'pending');
+        }
         break;
       case 'yield':
         if (this.stage != 'playing' ||
@@ -639,6 +645,14 @@ InstantGames.register('chicken', InstantGames.TwoPlayerGame, {
       this.addScore(0, 1);
       this.addScore(1, 1);
     }
-    $cls('yield', this.node).disabled = true;
+    if (this.selfIndex != null) {
+      $cls('ready', this.node).disabled = false;
+      $cls('yield', this.node).disabled = true;
+    }
+    this.stage = 'restarting';
+    this.overAt = null;
+    this.playersReady = [null, null];
+    this.playersYielded = [null, null];
+    this.playersDone = [false, false];
   }
 });
