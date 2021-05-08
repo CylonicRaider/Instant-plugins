@@ -463,7 +463,8 @@ InstantGames.register('tictactoe', InstantGames.TwoPlayerGame, {
 
 InstantGames.register('chicken', InstantGames.TwoPlayerGame, {
   DISPLAY_NAME: 'Chicken',
-  TIMEOUT: 10000, // Milliseconds.
+  TIMEOUT: 10000, // Milliseconds. Must not be changed, since old games would
+                  // not replay correctly otherwise.
   STATUSES: {
     pending : ['Pending...', '#800080'],
     ready   : ['Ready'     , '#008080'],
@@ -486,9 +487,9 @@ InstantGames.register('chicken', InstantGames.TwoPlayerGame, {
     body.appendChild($makeFrag(
       ['table', 'info-table', [
         ['tr', [
-          ['td', null, 'Status'],
-          ['td', null, 'Over in'],
-          ['td', null, 'Status']
+          ['td', 'status-header-0', 'Status'],
+          ['td', 'over-in-header', 'Over in'],
+          ['td', 'status-header-1', 'Status']
         ]],
         ['tr', [
           ['td', 'status-0', 'N/A'],
@@ -502,6 +503,12 @@ InstantGames.register('chicken', InstantGames.TwoPlayerGame, {
         ['button', 'button yield', {disabled: 'disabled'}, 'Yield']
       ]]
     ));
+    for (var i = 0; i < 2; i++) {
+      var name = this.playerInfo[i].name;
+      if (name == null) continue;
+      $cls('status-header-' + i, body).style.color =
+        Instant.nick.pingColor(name);
+    }
     if (this.selfIndex != null) {
       var readyBtn = $cls('ready', body), yieldBtn = $cls('yield', body);
       readyBtn.addEventListener('click', function(evt) {
