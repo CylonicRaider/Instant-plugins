@@ -580,7 +580,8 @@ InstantGames.register('chicken', InstantGames.TwoPlayerGame, {
         break;
       case 'yield':
         if (this.stage != 'playing' ||
-            this.playersYielded[index] != null)
+            this.playersYielded[index] != null ||
+            info.timestamp >= this.overAt)
           return;
         this.playersYielded[index] =
           Instant.util.serverTimeToLocalTime(info.timestamp);
