@@ -608,7 +608,10 @@ InstantGames.register('chicken', InstantGames.TwoPlayerGame, {
   startTimer: function(live) {
     function update() {
       var remaining = Math.max(this.overAt - Date.now(), 0);
-      timerNode.textContent = remaining + 'ms';
+      var remainingStr = (remaining >= 1000) ?
+        (remaining / 1000).toFixed(3) + 's' :
+        remaining + 'ms';
+      timerNode.textContent = remainingStr;
       if (remaining > 0) {
         requestAnimationFrame(callback);
       } else if (! done) {
