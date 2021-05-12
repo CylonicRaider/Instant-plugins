@@ -42,6 +42,8 @@
 }
 .game-header .score {
   font-weight: bold;
+  padding: 1px 0;
+  overflow: hidden;
 }
 .game-header .score-0, .game-header .score-1 {
   -webkit-flex-grow: 1;
