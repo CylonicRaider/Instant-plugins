@@ -526,7 +526,7 @@ InstantGames.register('chicken', InstantGames.TwoPlayerGame, {
     this.setPlayerStatus(0, 'pending');
     this.setPlayerStatus(1, 'pending');
   },
-  setPlayerStatus: function(index, tag) {
+  setPlayerStatus: function(index, tag, live) {
     this.playerStatuses[index] = tag;
     var node = $cls('status-' + index, this.node);
     var descriptor = this.STATUSES[tag];
@@ -535,6 +535,9 @@ InstantGames.register('chicken', InstantGames.TwoPlayerGame, {
     if (tag == 'ready') {
       if (index == this.selfIndex) {
         $cls('ready', this.node).disabled = true;
+      } else if (this.selfIndex != null &&
+                 ! this.playersReady[this.selfIndex]) {
+        this.embedInfo.raiseAttention('Your opponent is ready');
       }
       if (this.stage == 'waiting' && this.playersReady[0] != null &&
           this.playersReady[1] != null) {
@@ -570,7 +573,7 @@ InstantGames.register('chicken', InstantGames.TwoPlayerGame, {
           return;
         this.playersReady[index] =
           Instant.util.serverTimeToLocalTime(info.timestamp);
-        this.setPlayerStatus(index, 'ready');
+        this.setPlayerStatus(index, 'ready', info.live);
         if (this.stage == 'restarting') {
           this.resetUI();
           this.stage = 'waiting';
@@ -605,7 +608,7 @@ InstantGames.register('chicken', InstantGames.TwoPlayerGame, {
         break;
     }
   },
-  startTimer: function(live) {
+  startTimer: function() {
     function update() {
       var remaining = Math.max(this.overAt - Date.now(), 0);
       var remainingStr = (remaining >= 1000) ?
