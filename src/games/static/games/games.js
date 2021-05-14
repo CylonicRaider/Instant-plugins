@@ -536,7 +536,7 @@ InstantGames.register('chicken', InstantGames.TwoPlayerGame, {
       if (index == this.selfIndex) {
         $cls('ready', this.node).disabled = true;
       } else if (this.selfIndex != null &&
-                 ! this.playersReady[this.selfIndex]) {
+                 ! this.playersReady[this.selfIndex] && live) {
         this.embedInfo.raiseAttention('Your opponent is ready');
       }
       if (this.stage == 'waiting' && this.playersReady[0] != null &&
