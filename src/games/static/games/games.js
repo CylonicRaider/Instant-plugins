@@ -146,6 +146,31 @@ this.InstantGames = function() {
         RegisteredGame.prototype[prop] = data[prop];
       }
       InstantGames.games[name] = RegisteredGame;
+    },
+    syncNodeList: function(keys, parent, makeNode, updateNode) {
+      var childIndex = {};
+      for (var ch = parent.firstChild; ch; ch = ch.nextSibling) {
+        var id = ch.getAttribute('data-item-id');
+        if (id == null) continue;
+        childIndex[id] = ch;
+      }
+      var prevChild = null;
+      for (var i = 0; i < keys.length; i++) {
+        var curKey = keys[i];
+        var curChild = childIndex[curKey];
+        var insertBefore = (prevChild) ? prevChild.nextSibling :
+                                         parent.firstChild;
+        if (! curChild) {
+          curChild = makeNode(curKey);
+          curChild.setAttribute('data-item-id', curKey);
+          parent.insertBefore(curChild, insertBefore);
+        } else {
+          updateNode(curChild);
+          if (insertBefore != curChild)
+            parent.insertBefore(curChild, insertBefore);
+        }
+        prevChild = curChild;
+      }
     }
   };
 
