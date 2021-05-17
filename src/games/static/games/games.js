@@ -165,7 +165,8 @@ this.InstantGames = function() {
           curChild.setAttribute('data-item-id', curKey);
           parent.insertBefore(curChild, insertBefore);
         } else {
-          updateNode(curChild);
+          if (updateNode)
+            updateNode(curChild, curKey);
           if (insertBefore != curChild)
             parent.insertBefore(curChild, insertBefore);
         }
