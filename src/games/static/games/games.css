@@ -1,6 +1,40 @@
 
 /* Instant game plugin stylesheet */
 
+.new-game-content select {
+  width: 100%;
+}
+.new-game-content .game-player {
+  display: -webkit-flex;
+  display: flex;
+  -webkit-flex-wrap: wrap;
+  flex-wrap: wrap;
+  margin: 2px -1ch 2px 0;
+}
+.new-game-content .game-player label {
+  margin: 2px 1ch 2px 0;
+  outline-offset: -2px;
+}
+.new-game-content .game-player .nick {
+  border: 1px solid white;
+}
+.new-game-content .game-player label.disabled .nick {
+  color: rgba(0, 0, 0, 0.5);
+}
+.new-game-content .game-player input {
+  display: none;
+}
+.new-game-content .game-player input:enabled ~ .nick {
+  cursor: pointer;
+}
+.new-game-content .game-player input:enabled:active ~ .nick {
+  border-color: #808080;
+}
+.new-game-content .game-player input:checked ~ .nick {
+  font-weight: bold;
+  border-color: black;
+}
+
 .game-error {
   background: rgba(255, 0, 0, 0.125);
   color: #ff0000;

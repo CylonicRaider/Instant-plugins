@@ -135,6 +135,7 @@ this.InstantGames = function() {
     Game: Game,
     TwoPlayerGame: TwoPlayerGame,
     games: {},
+    gameList: [],
     register: function(name, superConstructor, data) {
       function RegisteredGame(embedInfo, name, players, params) {
         superConstructor.call(this, embedInfo, name, players, params);
@@ -144,6 +145,9 @@ this.InstantGames = function() {
       for (var prop in data) {
         if (! data.hasOwnProperty(prop)) continue;
         RegisteredGame.prototype[prop] = data[prop];
+      }
+      if (! InstantGames.games[name]) {
+        InstantGames.gameList.push(name);
       }
       InstantGames.games[name] = RegisteredGame;
     },
@@ -172,6 +176,88 @@ this.InstantGames = function() {
         }
         prevChild = curChild;
       }
+    },
+    showNewGamePopup: function() {
+      function updateEnabledness(node, uid) {
+        var isMe = (userIndex[uid].uuid == Instant.identity.uuid);
+        if (isMe) {
+          node.classList.add('disabled');
+          node.removeAttribute('tabindex');
+          node.title = '(cannot play with yourself)';
+        } else {
+          node.classList.remove('disabled');
+          node.setAttribute('tabindex', '0');
+          node.title = '';
+        }
+        $sel('input', node).disabled = isMe;
+      }
+      var gameType = $sel('.game-type', newGamePopup);
+      var gamePlayer = $sel('.game-player', newGamePopup);
+      var users = Instant.userList.query();
+      var userList = [], userIndex = {};
+      users.forEach(function(u) {
+        userList.push(u.id);
+        userIndex[u.id] = u;
+      });
+      InstantGames.syncNodeList(InstantGames.gameList, gameType,
+        function(name) {
+          return $makeNode('option', {value: name},
+            InstantGames.games[name].prototype.DISPLAY_NAME || name);
+        }, null);
+      InstantGames.syncNodeList(userList, gamePlayer, function(uid) {
+          var node = $makeNode('label', {tabindex: 0}, [
+            ['input', {type: 'radio', name: 'player', value: uid}],
+            Instant.nick.makeNode(userIndex[uid].nick)
+          ]);
+          updateEnabledness(node, uid);
+          return node;
+        }, function(node, uid) {
+          Instant.nick.updateNode($cls('nick', node), userIndex[uid].nick);
+          updateEnabledness(node, uid);
+        });
+      Instant.popups.add(newGamePopup);
+    },
+    startNewGameFromForm: function(form, postAt) {
+      if (form == null) form = $sel('form', newGamePopup);
+      var gameType = form.elements.type.value;
+      var otherPlayer = form.elements.player.value;
+      if (! otherPlayer) {
+        Instant.popups.addNewMessage(newGamePopup, {
+          className: 'popup-message-error',
+          content: $makeFrag(
+            ['b', null, 'Error: '],
+            'Select another player to play with'
+          )
+        });
+        return false;
+      }
+      return InstantGames.startNewGame(gameType, [Instant.identity.id,
+                                                  otherPlayer], postAt);
+    },
+    composeGameURI: function(type, playerUIDs, postAt) {
+      var playerUUIDs = [], playerNames = [];
+      var allFound = playerUIDs.every(function(uid) {
+        var uuid = Instant.logs.getUUID(uid);
+        if (uuid == null) return false;
+        var info = Instant.userList.query(null, null, uid);
+        playerUUIDs.push(info[0].uuid);
+        playerNames.push((info.length == 1) ? info[0].nick : null);
+        return true;
+      });
+      if (! allFound) return null;
+      var uri = 'game:' + type + '/' + playerUUIDs.join(',');
+      var query = playerNames.map(function(nick, index) {
+        if (nick == null) return null;
+        return 'p' + index + 'n=' + encodeURIComponent(nick);
+      }).filter(Boolean).join('&');
+      if (query) uri += '?' + query;
+      return uri;
+    },
+    startNewGame: function(type, playerUIDs, postAt) {
+      var uri = InstantGames.composeGameURI(type, playerUIDs);
+      if (uri == null) return false;
+      Instant.input.postAt('<!' + uri + '>', postAt);
+      return true;
     }
   };
 
@@ -211,6 +297,51 @@ this.InstantGames = function() {
     if (! embed.game) return;
     embed.game._onInput(info.fromUUID, info.text, info);
   }});
+
+  var newGamePopup = Instant.popups.make({
+    title: 'New game',
+    content: $makeNode('form', 'new-game-content popup-grid-wrapper', [
+      ['div', 'popup-grid', [
+        ['b', null, 'Game: '],
+        ['span', 'popup-grid-wide', [
+          ['select', 'game-type', {name: 'type'}]
+        ]]
+      ]],
+      ['div', 'popup-grid', [
+        ['b', null, 'Play with: '],
+        ['span', 'popup-grid-wide', [
+          ['span', 'game-player']
+        ]]
+      ]]
+    ]),
+    buttons: [
+      {text: 'Cancel', onclick: function() {
+        Instant.popups.del(newGamePopup);
+      }, className: 'popup-text-delete'},
+      {text: 'Start', onclick: function() {
+        if (InstantGames.startNewGameFromForm())
+          Instant.popups.del(newGamePopup);
+      }, className: 'game-start popup-text-create'}
+    ],
+    focusSel: 'select[name=type]'
+  });
+  $cls('new-game-content', newGamePopup).addEventListener('submit',
+    function(evt) {
+      evt.preventDefault();
+      $cls('game-start', newGamePopup).click();
+    });
+  $cls('game-player', newGamePopup).addEventListener('keydown',
+    function(evt) {
+      if (evt.keyCode == 13 || evt.keyCode == 32) { // Return or Space
+        var btn = $sel('input', evt.target);
+        if (! btn.disabled) btn.click();
+      }
+    });
+
+  Instant.popups.menu.addNew({
+    text: 'New game',
+    onclick: InstantGames.showNewGamePopup.bind(InstantGames)
+  });
 
   Instant.plugins.mailbox('games.register').handle(function(data) {
     var superConstructor = data.EXTENDS;
