@@ -35,6 +35,14 @@
   border-color: black;
 }
 
+.dark .new-game-content .game-player .nick {
+  border-color: black;
+}
+.dark .new-game-content .game-player input:checked ~ .nick {
+  border-color: #e0e0e0;
+  box-shadow: 0 0 5px white;
+}
+
 .game-error {
   background: rgba(255, 0, 0, 0.125);
   color: #ff0000;
