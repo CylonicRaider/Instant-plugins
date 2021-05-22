@@ -193,6 +193,9 @@ this.InstantGames = function() {
       }
       var gameType = $sel('.game-type', newGamePopup);
       var gamePlayer = $sel('.game-player', newGamePopup);
+      var gameTypeList = InstantGames.gameList.filter(function(name) {
+        return (InstantGames.games[name].prototype.REQUIRED_PLAYERS == 2);
+      });
       var users = Instant.userList.query();
       var userList = [], userIndex = {};
       users.forEach(function(u) {
@@ -221,6 +224,11 @@ this.InstantGames = function() {
       if (form == null) form = $sel('form', newGamePopup);
       var gameType = form.elements.type.value;
       var otherPlayer = form.elements.player.value;
+      // If there is only a single radio button, I get just that element
+      // as elements.player (rather than a single-element element list).
+      if (form.elements.player.nodeType !== undefined) {
+        otherPlayer = null;
+      }
       if (! otherPlayer) {
         Instant.popups.addNewMessage(newGamePopup, {
           className: 'popup-message-error',
