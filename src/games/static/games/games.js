@@ -1,6 +1,8 @@
 
 /* Instant game plugin code */
 
+'use strict';
+
 this.InstantGames = function() {
   var GAME_URI_RE =
     /^game:([a-zA-Z0-9_-]+)\/([0-9a-fA-F,-]+)(?:\?([^#]*))?$/;
