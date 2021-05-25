@@ -84,8 +84,8 @@ this.InstantGames = function() {
       return (pi.name == null) ? Instant.nick.makeAnonymous() :
         Instant.nick.makeNode(pi.name);
     }
-    indicators = (this.HAS_TURNS) ? this.renderTurnIndicators() :
-                                    [null, null];
+    var indicators = (this.HAS_TURNS) ? this.renderTurnIndicators() :
+                                        [null, null];
     this.node.appendChild($makeFrag(
       ['div', 'game-header', [
         ['span', 'player-header player-header-0', [
