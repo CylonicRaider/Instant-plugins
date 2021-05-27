@@ -306,7 +306,7 @@ this.InstantGames = function() {
   }, onData: function(embed, info) {
     if (! embed.game) return;
     embed.game._onInput(info.fromUUID, info.text, info);
-  }});
+  }, className: 'dark-mode-aware'});
 
   var newGamePopup = Instant.popups.make({
     title: 'New game',
@@ -493,9 +493,9 @@ InstantGames.register('tictactoe', InstantGames.TwoPlayerGame, {
         ];
       }
     }
-    var crossNode = $makeNode('img', 'cross',
+    var crossNode = $makeNode('img', 'cross dark-invert',
       {src: '/static/games/cross.svg', alt: 'x'});
-    var noughtNode = $makeNode('img', 'nought',
+    var noughtNode = $makeNode('img', 'nought dark-invert',
       {src: '/static/games/nought.svg', alt: 'o'});
     this._crossNode = crossNode;
     this._noughtNode = noughtNode;

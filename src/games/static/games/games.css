@@ -138,6 +138,10 @@
   flex-grow: 1;
 }
 
+.dark .game-root .game-header .turn-indicator {
+  background: white;
+}
+
 .game-root-popCont .game-body {
   -webkit-flex-direction: row;
   -webkit-align-items: stretch;
@@ -178,8 +182,10 @@
 .game-root-popCont textarea {
   resize: none;
   border: none;
+  background: none;
   box-shadow: 0 0 2px #808080;
   font: inherit;
+  color: inherit;
 }
 .game-root-popCont button, .game-root-popCont .button-row {
   -webkit-align-self: center;
@@ -230,6 +236,10 @@
   margin-top: 0.5em;
 }
 
+.dark .game-root-tictactoe td {
+  border-color: #e0e0e0;
+}
+
 .game-root-chicken table {
   border-collapse: collapse;
   border-style: hidden;
@@ -245,4 +255,8 @@
 }
 .game-root-chicken .button-row {
   margin-top: 5px;
+}
+
+.dark .game-root-chicken td {
+  border-color: #e0e0e0;
 }
