@@ -67,9 +67,9 @@
   white-space: pre;
 }
 .game-header {
-  margin-bottom: 1px;
+  margin-bottom: 2px;
   border-bottom: 1px solid #808080;
-  padding-bottom: 1px;
+  padding-bottom: 2px;
 }
 .player-header {
   -webkit-flex-basis: 0;
