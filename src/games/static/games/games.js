@@ -258,7 +258,8 @@ this.InstantGames = function() {
       var uri = 'game:' + type + '/' + playerUUIDs.join(',');
       var query = playerNames.map(function(nick, index) {
         if (nick == null) return null;
-        return 'p' + index + 'n=' + encodeURIComponent(nick);
+        return 'p' + index + 'n=' +
+          encodeURIComponent(nick).replace(/\+/g, '%2B');
       }).filter(Boolean).join('&');
       if (query) uri += '?' + query;
       return uri;
