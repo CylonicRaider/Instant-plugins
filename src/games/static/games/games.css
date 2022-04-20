@@ -72,26 +72,26 @@
   padding-bottom: 2px;
 }
 .player-header {
-  -webkit-flex-basis: 0;
   -webkit-flex-grow: 1;
-  flex-basis: 0;
   flex-grow: 1;
+  min-width: 25%;
 }
 .game-header .nick {
   white-space: pre;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 .game-header .score {
   font-weight: bold;
   padding: 1px 0;
   overflow: hidden;
+  -webkit-flex-shrink: 0;
+  flex-shrink: 0;
 }
 .game-header .score-0, .game-header .score-1 {
   -webkit-flex-grow: 1;
-  -webkit-flex-shrink: 0;
   flex-grow: 1;
-  flex-shrink: 0;
 }
 .game-header .score-0 {
   text-align: right;
