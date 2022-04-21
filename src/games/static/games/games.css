@@ -72,15 +72,16 @@
   padding-bottom: 2px;
 }
 .player-header {
+  -webkit-flex-basis: 0;
   -webkit-flex-grow: 1;
+  flex-basis: 0;
   flex-grow: 1;
-  min-width: 25%;
+  min-width: 0;
 }
 .game-header .nick {
   white-space: pre;
   overflow: hidden;
   text-overflow: ellipsis;
-  min-width: 0;
 }
 .game-header .score {
   font-weight: bold;
