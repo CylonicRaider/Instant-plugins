@@ -82,7 +82,7 @@ this.InstantGames = function() {
   TwoPlayerGame.prototype.render = function() {
     function makeNickNode(pi) {
       return (pi.name == null) ? Instant.nick.makeAnonymous() :
-        Instant.nick.makeNode(pi.name);
+        Instant.nick.makeNode(pi.name, true);
     }
     var indicators = (this.HAS_TURNS) ? this.renderTurnIndicators() :
                                         [null, null];
@@ -212,12 +212,13 @@ this.InstantGames = function() {
       InstantGames.syncNodeList(userList, gamePlayer, function(uid) {
           var node = $makeNode('label', {tabindex: 0}, [
             ['input', {type: 'radio', name: 'player', value: uid}],
-            Instant.nick.makeNode(userIndex[uid].nick)
+            Instant.nick.makeNode(userIndex[uid].nick, true)
           ]);
           updateEnabledness(node, uid);
           return node;
         }, function(node, uid) {
-          Instant.nick.updateNode($cls('nick', node), userIndex[uid].nick);
+          Instant.nick.updateNode($cls('nick', node), userIndex[uid].nick,
+                                  true);
           updateEnabledness(node, uid);
         });
       Instant.popups.add(newGamePopup);
